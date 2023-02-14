@@ -1,0 +1,84 @@
+package com.imct.alphaclass.controller;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.imct.alphaclass.bean.Course;
+import com.imct.alphaclass.common.JSONResult;
+import com.imct.alphaclass.service.CourseService;
+import com.imct.alphaclass.utils.TokenUtils;
+
+
+@RestController
+// @RequestMapping("/courses")
+public class CourseController {
+    @Autowired
+    private CourseService service;
+
+    @RequestMapping(value = "/users/{owner}/courses", method =RequestMethod.GET)
+    public JSONResult getAllByUser(@PathVariable String owner){
+        return JSONResult.successWithData(service.getAllByUser(owner));
+    }
+
+    @RequestMapping(value =  "/user/courses", method =RequestMethod.POST)
+    public JSONResult addCourse(@RequestBody Course course){
+        Map<String, Object> result = service.addCourse(TokenUtils.getCurrentUser().getUsername(), course);
+        if (result!=null) {
+            return JSONResult.successWithData(result);
+        }else{
+            return JSONResult.failWithMsg("401", "");
+        }
+    }
+
+    @RequestMapping(value = "/courses/{owner}/{course}",method = RequestMethod.GET)
+    public JSONResult getByUserAndName(@PathVariable String owner, @PathVariable String course) {
+        Map<String, Object> result = service.getByUserAndName(owner,course);
+        if (result!=null) {
+            return JSONResult.successWithData(result);
+        }else{
+            return JSONResult.failWithMsg("401", "");
+        }
+    }
+
+    @RequestMapping(value = "/courses/actions/get-project-by-id",method = RequestMethod.GET)
+    public JSONResult getById(@RequestParam(value = "id",required = true) int id) {
+        Map<String, Object> result = service.getById(id);
+        if (result!=null) {
+            return JSONResult.successWithData(result);
+        }else{
+            return JSONResult.failWithMsg("401", "");
+        }
+    }
+
+    @RequestMapping(value = "/courses/{owner}/{course}",method = RequestMethod.PUT)
+    public JSONResult modifyByUserAndName(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
+        if (owner.equals(TokenUtils.getCurrentUser().getUsername())) {   
+            Map<String, Object> result = service.modifyByUserAndName(owner, course,params);
+            if (result!=null) {
+                return JSONResult.successWithData(result);
+            }else{
+                return JSONResult.failWithMsg("401", "");
+            }
+        }else{
+            return JSONResult.failWithMsg("401", "仅课程创建者可修改");
+        }
+    }
+
+    @RequestMapping(value = "/courses/{owner}/{course}",method = RequestMethod.DELETE)
+    public JSONResult deleteByUserAndName(@PathVariable String owner, @PathVariable String course) {
+        if (TokenUtils.getCurrentUser()!=null) {
+            service.deleteByUserAndName(owner, course);
+            return null;
+        }else{
+            return JSONResult.failWithMsg("401", "无token");
+        }
+    }
+}
