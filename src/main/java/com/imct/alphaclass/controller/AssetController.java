@@ -31,9 +31,10 @@ public class AssetController {
         return JSONResult.successWithData(service.getAllByUser(TokenUtils.getCurrentUser().getUsername(),page,perpage,tyoe));
     }
 
+    // 更改参数为map类型是为了能够解析出asset及modelinfo两种对象
     @RequestMapping(value =  "/user/assets", method =RequestMethod.POST)
-    public JSONResult addCourse(@RequestBody Asset asset){
-        Map<String, Object> result = service.addAsset(TokenUtils.getCurrentUser().getUsername(), asset);
+    public JSONResult addCourse(@RequestBody Map<String, Object> params){
+        Map<String, Object> result = service.addAsset(TokenUtils.getCurrentUser().getUsername(), params);
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
