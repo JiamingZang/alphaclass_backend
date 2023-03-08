@@ -91,6 +91,7 @@ public class AssetService {
         asset.setName(params.get("name").toString());
         asset.setType(params.get("type").toString());
         asset.setUrl(params.get("url").toString());
+        asset.setSize((int)params.get("size"));
         asset.setThumbnail_url(params.get("thumbnail_url").toString());
         // 如果没有model_info就直接转为asset对象
         if (params.get("model_info")!=null) {
