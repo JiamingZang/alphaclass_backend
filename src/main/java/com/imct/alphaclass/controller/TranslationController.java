@@ -41,36 +41,20 @@ import java.util.*;
 @RestController
 public class TranslationController {
 
-    @RequestMapping(value = "/services/test", method = RequestMethod.GET)
-    public JSONResult getDataFromUrl(@RequestParam(name = "word",required = true) String word) throws IOException{
-        return JSONResult.successWithData(TranslateByYouDao(word));
+    @RequestMapping(value = "/services/zh-to-en", method = RequestMethod.GET)
+    public JSONResult translateZhToEN(@RequestParam(name = "word",required = true) String word) throws IOException{
+        YoudaoTranslationResult translation = translateCN(word);
+        CN2ENResult res = new CN2ENResult(word, translation.basic.explains);
+        return JSONResult.successWithData(res);
+    }
+    
+    @RequestMapping(value = "/services/en-to-zh", method = RequestMethod.GET)
+    public JSONResult translateENToZh(@RequestParam(name = "word",required = true) String word) throws IOException{
+        YoudaoTranslationResult translation = translateEN(word);
+        EN2CNResult res = new EN2CNResult(word, translation.basic.phonetic, translation.exampleSentences);
+        return JSONResult.successWithData(res);
     }
 
-    @RequestMapping(value = "/services/testword", method = RequestMethod.GET)
-    public JSONResult getDataFromUrl1(@RequestParam(name = "word",required = true) String word) throws IOException{
-        return JSONResult.successWithData(translateEN(word));
-    }
-
-        
-    public List<YoudaoTranslationResult> TranslateByYouDao(String q) throws IOException{
-        List<YoudaoTranslationResult> enResults = new ArrayList<YoudaoTranslationResult>();
-        String url = "https://openapi.youdao.com/api";
-        Map<String, String> dic = getRequestMap(q, "zh-CHS", "en");//所有上传的参数将写入该字典中
-        YoudaoTranslationResult wordResult = requestForHttp(url, dic);
-
-        dic.put("from", "en");
-        dic.put("to", "zh-CHS");
-
-        if (wordResult.basic != null) {
-            for (String enq : wordResult.basic.explains) {
-                dic = getRequestMap(enq, "en", "zh-CHS");
-                YoudaoTranslationResult enResult = requestForHttp(url, dic);
-                enResult.exampleSentences = getExampleSentences(enq);
-                enResults.add(enResult);
-            }
-        }
-        return enResults;
-    }
     public YoudaoTranslationResult translateCN(String q){
         Map<String, String> dic = getRequestMap(q, "zh-CHS", "en");//所有上传的参数将写入该字典中
         String url = "https://openapi.youdao.com/api";
@@ -84,6 +68,27 @@ public class TranslationController {
         YoudaoTranslationResult res = get(url, dic);
         res.exampleSentences = getExampleSentences(q);
         return res;
+        
+    }
+
+    public class EN2CNResult{
+        public String keyword;
+        public String phonetic;
+        public List<ExampleSentencesResult> exampleSentences;
+        public EN2CNResult(String keyword, String phonetic, List<ExampleSentencesResult> exampleSentences) {
+            this.keyword = keyword;
+            this.phonetic = phonetic;
+            this.exampleSentences = exampleSentences;
+        }
+    }
+
+    public class CN2ENResult {
+        public String keyword;
+        public List<String> explains;
+        public CN2ENResult(String keyword, List<String> explains) {
+            this.keyword = keyword;
+            this.explains = explains;
+        }
         
     }
 
@@ -103,10 +108,10 @@ public class TranslationController {
         public List<String> translation;
         public BasicResult basic;
         public List<WebResult> web;
-        public String l;
+        public String l;//源语言和目标语言
         public String tSpeakUrl;
         public String speakUrl;
-        public List<String> returnPhrase;
+        public List<String> returnPhrase;//单词校验结果
         public List<ExampleSentencesResult> exampleSentences;
     }
 
@@ -124,6 +129,7 @@ public class TranslationController {
 
     private static final String APP_SECRET = "REPLACED_YOUDAO_APP_SECRET";
 
+    //获取请求参数的map
     public Map<String,String> getRequestMap(String q,String from,String to) {
         Map<String,String> params = new HashMap<String,String>();
         String salt = String.valueOf(System.currentTimeMillis());
@@ -139,10 +145,9 @@ public class TranslationController {
         params.put("salt", salt);
         params.put("sign", sign);
         return params;
-        // /** 处理结果 */
-        // requestForHttp(YOUDAO_URL,params);
     }
 
+    //抄的，没什么用
     public YoudaoTranslationResult requestForHttp(String url,Map<String,String> params) throws IOException {
 
         /** 创建HttpClient */
@@ -162,7 +167,6 @@ public class TranslationController {
         CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
         
         Header[] contentType = httpResponse.getHeaders("Content-Type");
-        // logger.info("Content-Type:" + contentType[0].getValue());
         String json = "";
         if("audio/mp3".equals(contentType[0].getValue())){
             //如果响应是wav
@@ -180,10 +184,7 @@ public class TranslationController {
             HttpEntity httpEntity = httpResponse.getEntity();
             json = EntityUtils.toString(httpEntity,"UTF-8");
             EntityUtils.consume(httpEntity);
-            // logger.info(json);
-            // System.out.println(json);
         }
-        // System.out.println(StringEscapeUtils.unescapeJson(json));
         return JSON.parseObject(StringEscapeUtils.unescapeJson(json),new TypeReference<YoudaoTranslationResult>(){});
 
         
@@ -249,20 +250,18 @@ public class TranslationController {
         return len <= 20 ? q : (q.substring(0, 10) + len + q.substring(len - 10, len));
     }
 
-    
     public List<ExampleSentencesResult> getExampleSentences(String enq){
         List<ExampleSentencesResult> res = new ArrayList<ExampleSentencesResult>();
         String wordURL = "https://www.youdao.com/result?word=" + enq + "&lang=en";
         OkHttpClient client = new OkHttpClient().newBuilder()
-        .build();
+            .build();
         Request request = new Request.Builder()
-        .url(wordURL)
-        .method("GET", null)
-        .build();
+            .url(wordURL)
+            .method("GET", null)
+            .build();
         try {
             Response response = client.newCall(request).execute();
             Document document = Jsoup.parse(response.body().string());
-            // System.out.println(document.title());
             document.select("script").remove();
             document.select("link").remove();
             document.select("style").remove();
@@ -282,7 +281,6 @@ public class TranslationController {
         return res;
     }
 
-
     public YoudaoTranslationResult get(String url, Map<String,String> map){
         StringBuilder builder = new StringBuilder();
 
@@ -295,7 +293,6 @@ public class TranslationController {
             i++;
         }
 
-        System.out.println(url+"?"+builder.toString());
         OkHttpClient client = new OkHttpClient().newBuilder()
             .build();
         Request request = new Request.Builder()
