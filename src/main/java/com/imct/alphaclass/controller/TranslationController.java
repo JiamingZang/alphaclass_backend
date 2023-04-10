@@ -42,15 +42,22 @@ import java.util.*;
 public class TranslationController {
 
     @RequestMapping(value = "/services/zh-to-en", method = RequestMethod.GET)
-    public JSONResult translateZhToEN(@RequestParam(name = "word",required = true) String word) throws IOException{
+    public JSONResult translateZhToEN(@RequestParam(name = "word",required = true) String word){
         YoudaoTranslationResult translation = translateCN(word);
+        if (translation.basic==null){
+            return JSONResult.successWithData(new HashMap<>());
+        }
         CN2ENResult res = new CN2ENResult(word, translation.basic.explains);
         return JSONResult.successWithData(res);
+        
     }
     
     @RequestMapping(value = "/services/en-to-zh", method = RequestMethod.GET)
-    public JSONResult translateENToZh(@RequestParam(name = "word",required = true) String word) throws IOException{
+    public JSONResult translateENToZh(@RequestParam(name = "word",required = true) String word){
         YoudaoTranslationResult translation = translateEN(word);
+        if (translation.basic==null){
+            return JSONResult.successWithData(new HashMap<>());
+        }
         EN2CNResult res = new EN2CNResult(word, translation.basic.phonetic, translation.exampleSentences);
         return JSONResult.successWithData(res);
     }
