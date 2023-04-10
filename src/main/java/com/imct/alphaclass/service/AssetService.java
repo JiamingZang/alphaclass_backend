@@ -198,16 +198,27 @@ public class AssetService {
             dao.updateAssetById(params.get("name").toString(), new Timestamp(System.currentTimeMillis()).toString(), id);
         }
         if (params.get("model_info")!=null){
+            
             Modelinfo modelinfo = new Modelinfo();
             Map<String,Object> model_info = (Map<String, Object>)params.get("model_info");
             Map<String,Object> scale = (Map<String, Object>)model_info.get("scale");
-            modelinfodao.updateModelinfoById(
-                model_info.get("anime_to_play").toString(), 
-                Float.valueOf(scale.get("scale_x").toString()), 
-                Float.valueOf(scale.get("scale_y").toString()), 
-                Float.valueOf(scale.get("scale_z").toString()), 
-                id);
+            if (modelinfodao.getModelinfoById(id)!=null) {
 
+                modelinfodao.updateModelinfoById(
+                    model_info.get("anime_to_play").toString(), 
+                    Float.valueOf(scale.get("scale_x").toString()), 
+                    Float.valueOf(scale.get("scale_y").toString()), 
+                    Float.valueOf(scale.get("scale_z").toString()), 
+                    id);
+            }else{
+                modelinfo.setId(id);
+                modelinfo.setAnime_to_play(model_info.get("anime_to_play").toString());
+                modelinfo.setScale_x(Float.valueOf(scale.get("scale_x").toString()));
+                modelinfo.setScale_y(Float.valueOf(scale.get("scale_y").toString()));
+                modelinfo.setScale_z(Float.valueOf(scale.get("scale_z").toString()));
+                modelinfodao.addModelinfo(modelinfo);
+            }
+                    
             // 更改animation表，思路是先删除对应modelinfo所有的animation再加上去
             if (model_info.get("animations")!=null) {
                 // 获取animation名称列表
