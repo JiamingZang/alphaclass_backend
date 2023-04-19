@@ -101,6 +101,52 @@ public class AssetService {
         return result;
     }
 
+    public Map<String, Object> getAssetById(int id) {
+        Asset assetResult = dao.getAssetById(id);
+        Modelinfo modelinfo = new Modelinfo();
+        // 响应内容
+        Map<String, Object> result = JSON.parseObject(JSON.toJSONString(assetResult), new TypeReference<Map<String, Object>>() {});
+        result.remove("uid");
+        result.put("id", result.get("id").toString());
+        // 如果为model类型则添加modelinfo字段
+        if (result.get("type").toString().equals("model")) {
+            modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(result.get("id").toString()));
+            // "model_info": {
+                    //     "anime_to_play": "take 001",
+                    //     "scale": {
+                    //       "scale_x": 1,
+                    //       "scale_y": 1,
+                    //       "scale_z": 1
+                    //     },
+                    //     "animations": [
+                    //       "take 001",
+                    //       "take 002",
+                    //       "take 003"
+                    //     ]
+                    //   }
+            if (modelinfo!=null) {
+                Map<String,Object> scale = new HashMap<String,Object>();
+                scale.put("scale_x", modelinfo.getScale_x());
+                scale.put("scale_y", modelinfo.getScale_y());
+                scale.put("scale_z", modelinfo.getScale_z());
+                List<String> animationsList = new ArrayList<String>();
+                for (Map<String, Object> animation: 
+                animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
+                    animationsList.add(animation.get("name").toString());
+                }
+
+                Map<String,Object> model_info = new HashMap<String,Object>();
+                model_info.put("anime_to_play", modelinfo.getAnime_to_play());
+                model_info.put("scale", scale);
+                model_info.put("animations", animationsList);
+                // 加入asset中
+                result.put("model_info", model_info);
+            }
+        }
+        return result;
+
+    }
+
     public Map<String, Object> addAsset(String username,Map<String, Object> params){
         Modelinfo modelinfo = new Modelinfo();
         Asset asset = new Asset();

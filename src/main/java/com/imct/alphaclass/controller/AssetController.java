@@ -57,4 +57,15 @@ public class AssetController {
         }
         
     }
+
+    @RequestMapping(value = "/user/assets/{id}",method = RequestMethod.GET)
+    public JSONResult getById(@PathVariable int id) {
+        Map<String, Object> result = service.getAssetById(id);
+        if (result!=null) {
+            return JSONResult.successWithData(result);
+        }else{
+            return JSONResult.failWithMsg("401", "");
+        }
+        
+    }
 }
