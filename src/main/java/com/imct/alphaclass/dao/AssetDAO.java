@@ -15,7 +15,7 @@ import com.imct.alphaclass.bean.Asset;
 public interface AssetDAO {
    @Select("select * from asset where uid = #{uid}")
     public List<Map<String, Object>> getAllAssetsByUid(int uid);
-
+    //generated是mysql关键字，所以要用`包裹
     @Insert("Insert into asset (uid, name, type, url, thumbnail_url, created_at, updated_at,size,`generated`) values(#{uid},#{name},#{type},#{url},#{thumbnail_url},#{created_at},#{created_at},#{size},#{generated})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     public void addAsset(Asset asset);
