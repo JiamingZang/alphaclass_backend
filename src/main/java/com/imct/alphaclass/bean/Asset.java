@@ -15,7 +15,14 @@ public class Asset implements Serializable{
     private String updated_at;
     private String deleted_at;
     private int size;
+    private Boolean generated;
     
+    public Boolean getGenerated() {
+        return generated;
+    }
+    public void setGenerated(Boolean generated) {
+        this.generated = generated;
+    }
     public int getSize() {
         return size;
     }

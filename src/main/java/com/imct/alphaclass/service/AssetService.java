@@ -156,6 +156,7 @@ public class AssetService {
         asset.setUrl(params.get("url").toString());
         asset.setSize((int)params.get("size"));
         asset.setThumbnail_url(params.get("thumbnail_url").toString());
+        asset.setGenerated((Boolean)params.get("generated").toString().equals("true"));
         // 如果没有model_info就直接转为asset对象
         if (params.get("model_info")!=null) {
             // 试一下能不能转成

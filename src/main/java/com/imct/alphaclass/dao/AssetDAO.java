@@ -16,7 +16,7 @@ public interface AssetDAO {
    @Select("select * from asset where uid = #{uid}")
     public List<Map<String, Object>> getAllAssetsByUid(int uid);
 
-    @Insert("Insert into asset (uid, name, type, url, thumbnail_url, created_at, updated_at,size) values(#{uid},#{name},#{type},#{url},#{thumbnail_url},#{created_at},#{created_at},#{size})")
+    @Insert("Insert into asset (uid, name, type, url, thumbnail_url, created_at, updated_at,size,`generated`) values(#{uid},#{name},#{type},#{url},#{thumbnail_url},#{created_at},#{created_at},#{size},#{generated})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     public void addAsset(Asset asset);
 
