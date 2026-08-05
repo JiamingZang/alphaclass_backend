@@ -24,7 +24,8 @@ public interface UserDAO {
     @Select("select id,username,role,name from user where username = #{username}")
     public User getByUsername(String username);
 
-    @Select("select id,username,password,role,name from user where username = #{username} and password = #{password} and role = #{role}")
+    // 登录只按用户名+密码校验，不依赖前端传 role（role 缺失时旧 SQL 恒不匹配）
+    @Select("select id,username,password,role,name from user where username = #{username} and password = #{password}")
     public User login(User user);
 
     @Select("select * from user where id = #{id}")

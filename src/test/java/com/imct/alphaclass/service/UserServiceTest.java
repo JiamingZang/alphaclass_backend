@@ -12,6 +12,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -94,6 +95,11 @@ class UserServiceTest {
         assertEquals("bob", result.get("username"));
         assertEquals("http://localhost:8080/v2/users/bob", result.get("url"));
         assertEquals("http://localhost:8080/v2/users/bob/courses", result.get("courses_url"));
+        // 入库密码必须为哈希值，明文不得落库
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(dao).register(captor.capture());
+        assertEquals(UserService.hashPassword("bob", "pwd"), captor.getValue().getPassword());
+        assertNotEquals("pwd", captor.getValue().getPassword());
     }
 
     @Test
@@ -135,7 +141,12 @@ class UserServiceTest {
 
     @Test
     void login_success_returnsUserWithSignKey() {
-        when(dao.login(any(User.class))).thenReturn(buildUser());
+        // 模拟库中存量：密码已是哈希值
+        when(dao.login(any(User.class))).thenAnswer(invocation -> {
+            User stored = buildUser();
+            stored.setPassword(UserService.hashPassword("alice", "secret"));
+            return stored;
+        });
 
         User login = new User();
         login.setUsername("alice");
@@ -146,9 +157,14 @@ class UserServiceTest {
 
         assertNotNull(result);
         assertEquals("1", result.get("id"));
-        assertEquals("secret", result.get("sign"));
+        assertEquals(UserService.hashPassword("alice", "secret"), result.get("sign"));
         assertNull(result.get("password"));
         assertEquals("http://localhost:8080/v2/users/alice", result.get("url"));
+        // 查询前密码必须已哈希，明文不参与比对
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(dao).login(captor.capture());
+        assertEquals(UserService.hashPassword("alice", "secret"), captor.getValue().getPassword());
+        assertNotEquals("secret", captor.getValue().getPassword());
     }
 
     @Test
@@ -165,7 +181,10 @@ class UserServiceTest {
 
     @Test
     void changePassword_success_returnsUserWithoutPassword() {
-        when(dao.updatePasswordByUsername(eq("newpwd"), eq("alice"), eq("oldpwd"))).thenReturn(true);
+        when(dao.updatePasswordByUsername(
+                eq(UserService.hashPassword("alice", "newpwd")),
+                eq("alice"),
+                eq(UserService.hashPassword("alice", "oldpwd")))).thenReturn(true);
         // 真实 DAO 的 getByUsername 不查询 password 字段，此处 mock 不带密码的用户
         User withoutPassword = buildUser();
         withoutPassword.setPassword(null);

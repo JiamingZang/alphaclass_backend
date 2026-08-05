@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -25,6 +26,16 @@ public class UserService {
     private final UserDAO dao;
     private final AccessService access;
 
+    /**
+     * 密码哈希：SHA-256，用户名作盐（salt = username + raw）。
+     * 库中不存明文；登录/改密均先哈希再比对/写入（包可见，供同包测试复用）。
+     */
+    static String hashPassword(String username, String rawPassword) {
+        String salt = username == null ? "" : username;
+        String raw = rawPassword == null ? "" : rawPassword;
+        return DigestUtil.sha256Hex(salt + raw);
+    }
+
     /** 查询全部用户（id 转字符串、url/courses_url 填充） */
     public List<Map<String, Object>> findAll() {
         return dao.findAll().stream()
@@ -37,6 +48,7 @@ public class UserService {
         if (dao.getByUsername(user.getUsername()) != null) {
             return null;
         }
+        user.setPassword(hashPassword(user.getUsername(), user.getPassword()));
         dao.register(user);
         return toUserMap(user);
     }
@@ -62,6 +74,7 @@ public class UserService {
      * 响应不含明文密码，密码经 sign 键单独传出（仅用于 Controller 签发 token）。
      */
     public Map<String, Object> login(User user) {
+        user.setPassword(hashPassword(user.getUsername(), user.getPassword()));
         User resultUser = dao.login(user);
         if (resultUser == null) {
             return null;
@@ -84,7 +97,10 @@ public class UserService {
         if (params.get("password") == null || params.get("new_password") == null) {
             return null;
         }
-        if (!dao.updatePasswordByUsername(params.get("new_password"), username, params.get("password"))) {
+        if (!dao.updatePasswordByUsername(
+                hashPassword(username, params.get("new_password")),
+                username,
+                hashPassword(username, params.get("password")))) {
             return null;
         }
         Map<String, Object> result = getByUsername(username);
