@@ -1,57 +1,33 @@
 package com.imct.alphaclass.task;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Resource;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.aliyun.oss.OSS;
-import com.aliyun.oss.OSSClientBuilder;
-import com.aliyun.oss.model.PutObjectRequest;
 import com.imct.alphaclass.dao.ServiceDAO;
-import com.tencentcloudapi.common.Credential;
-import com.tencentcloudapi.common.exception.TencentCloudSDKException;
-import com.tencentcloudapi.common.profile.ClientProfile;
-import com.tencentcloudapi.common.profile.HttpProfile;
-import com.tencentcloudapi.ai3d.v20250513.Ai3dClient;
-import com.tencentcloudapi.ai3d.v20250513.models.QueryHunyuanTo3DRapidJobRequest;
+import com.imct.alphaclass.service.ModelGenerationService;
 import com.tencentcloudapi.ai3d.v20250513.models.QueryHunyuanTo3DRapidJobResponse;
+import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-
+/**
+ * 模型生成任务定时轮询：每 30 秒查询腾讯云上 GENERATING 状态的任务，
+ * 完成（DONE）则下载 GLB/预览图到 OSS 并更新落库；失败（FAIL）则标记 FAILED。
+ * <p>
+ * 腾讯云查询与 OSS 传输逻辑复用 {@link ModelGenerationService}，本类只负责调度与状态流转。
+ */
 @Component
 public class ModelTaskScheduler {
 
     @Resource
     private ServiceDAO servicedao;
 
-    @Value("${ai.tencent.secret-id}")
-    private String tencentSecretId;
-    @Value("${ai.tencent.secret-key}")
-    private String tencentSecretKey;
-    @Value("${ai.oss.endpoint}")
-    private String ossEndpoint;
-    @Value("${ai.oss.bucket}")
-    private String ossBucket;
-    @Value("${ai.oss.access-key-id}")
-    private String ossAccessKeyId;
-    @Value("${ai.oss.access-key-secret}")
-    private String ossAccessKeySecret;
+    @Resource
+    private ModelGenerationService modelService;
 
     @Scheduled(fixedDelay = 30000)
     public void pollModelTasks() {
@@ -66,7 +42,8 @@ public class ModelTaskScheduler {
 
     private void processGeneratingTask(Map<String, Object> rMap) {
         try {
-            QueryHunyuanTo3DRapidJobResponse queryResponse = queryModelGenerateRequest(rMap.get("job_id").toString());
+            QueryHunyuanTo3DRapidJobResponse queryResponse = modelService
+                    .queryModelGenerateRequest(rMap.get("job_id").toString());
             if (queryResponse.getStatus().equals("FAIL")) {
                 servicedao.updateModelResultById("FAILED", "", "", 0, 0, rMap.get("request_id").toString());
             } else if (queryResponse.getStatus().equals("DONE")) {
@@ -82,104 +59,22 @@ public class ModelTaskScheduler {
                 int polygonCount = 0;
                 try {
                     if (tencentUrl.length() > 0) {
-                        byte[] glbData = downloadFileBytes(tencentUrl);
-                        ossUrl = "assets/aigc_models/models/" + jobId + ".glb";
-                        OSS ossClient = new OSSClientBuilder().build(ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
-                        PutObjectRequest putObjectRequest = new PutObjectRequest(ossBucket, ossUrl, new ByteArrayInputStream(glbData));
-                        ossClient.putObject(putObjectRequest);
-                        ossClient.shutdown();
-                        polygonCount = countGlbTriangles(glbData);
+                        byte[] glbData = modelService.downloadFileBytes(tencentUrl);
+                        ossUrl = modelService.downloadAndUploadToOss(tencentUrl, "assets/aigc_models/models/" + jobId + ".glb");
+                        polygonCount = modelService.countGlbTriangles(glbData);
                     }
                     if (tencentPreviewUrl.length() > 0) {
-                        ossThumbnailUrl = downloadAndUploadToOss(tencentPreviewUrl, "assets/aigc_models/thumbnails/" + jobId + ".png");
+                        ossThumbnailUrl = modelService.downloadAndUploadToOss(tencentPreviewUrl,
+                                "assets/aigc_models/thumbnails/" + jobId + ".png");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                servicedao.updateModelResultById("FINISHED", ossUrl, ossThumbnailUrl, polygonCount, 0, rMap.get("request_id").toString());
+                servicedao.updateModelResultById("FINISHED", ossUrl, ossThumbnailUrl, polygonCount, 0,
+                        rMap.get("request_id").toString());
             }
         } catch (TencentCloudSDKException e) {
             e.printStackTrace();
-        }
-    }
-
-    private QueryHunyuanTo3DRapidJobResponse queryModelGenerateRequest(String jobId) throws TencentCloudSDKException {
-        Credential cred = new Credential(tencentSecretId, tencentSecretKey);
-        HttpProfile httpProfile = new HttpProfile();
-        httpProfile.setEndpoint("ai3d.tencentcloudapi.com");
-        ClientProfile clientProfile = new ClientProfile();
-        clientProfile.setHttpProfile(httpProfile);
-        Ai3dClient client = new Ai3dClient(cred, "ap-guangzhou", clientProfile);
-        QueryHunyuanTo3DRapidJobRequest req = new QueryHunyuanTo3DRapidJobRequest();
-        req.setJobId(jobId);
-        QueryHunyuanTo3DRapidJobResponse resp = client.QueryHunyuanTo3DRapidJob(req);
-        return resp;
-    }
-
-    private String downloadAndUploadToOss(String sourceUrl, String objectName) throws IOException {
-        OSS ossClient = new OSSClientBuilder().build(ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
-        OkHttpClient client = new OkHttpClient().newBuilder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .build();
-        Request request = new Request.Builder().url(sourceUrl).build();
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Failed to download: " + response.code());
-            }
-            byte[] data = response.body().bytes();
-            PutObjectRequest putObjectRequest = new PutObjectRequest(ossBucket, objectName, new ByteArrayInputStream(data));
-            ossClient.putObject(putObjectRequest);
-        } finally {
-            ossClient.shutdown();
-        }
-        return objectName;
-    }
-
-    private byte[] downloadFileBytes(String sourceUrl) throws IOException {
-        OkHttpClient client = new OkHttpClient().newBuilder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .build();
-        Request request = new Request.Builder().url(sourceUrl).build();
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Failed to download: " + response.code());
-            }
-            return response.body().bytes();
-        }
-    }
-
-    private int countGlbTriangles(byte[] glbData) {
-        try {
-            if (glbData.length < 20) return 0;
-            int jsonChunkLength = ByteBuffer.wrap(glbData, 12, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
-            int jsonStart = 20;
-            String jsonChunk = new String(glbData, jsonStart, jsonChunkLength, StandardCharsets.UTF_8);
-            JSONObject json = JSON.parseObject(jsonChunk);
-            JSONArray accessors = json.getJSONArray("accessors");
-            if (accessors == null) return 0;
-            int totalTriangles = 0;
-            JSONArray meshes = json.getJSONArray("meshes");
-            if (meshes == null) return 0;
-            for (int i = 0; i < meshes.size(); i++) {
-                JSONObject mesh = meshes.getJSONObject(i);
-                JSONArray primitives = mesh.getJSONArray("primitives");
-                if (primitives == null) continue;
-                for (int j = 0; j < primitives.size(); j++) {
-                    JSONObject primitive = primitives.getJSONObject(j);
-                    if (primitive.containsKey("indices")) {
-                        int indicesAccessorIndex = primitive.getIntValue("indices");
-                        JSONObject accessor = accessors.getJSONObject(indicesAccessorIndex);
-                        int count = accessor.getIntValue("count");
-                        totalTriangles += count / 3;
-                    }
-                }
-            }
-            return totalTriangles;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
         }
     }
 }
