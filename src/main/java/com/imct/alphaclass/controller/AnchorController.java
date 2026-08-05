@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,8 +17,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 
 @RestController
 public class AnchorController {
-    @Autowired
-    private AnchorService service;
+    private final AnchorService service;
+
+    public AnchorController(AnchorService service) {
+        this.service = service;
+    }
 
     @RequestMapping(value = "/courses/{owner}/{course}/anchors",method = RequestMethod.GET)
     public JSONResult getAllAnchorsByCourse(@PathVariable String owner, @PathVariable String course) {

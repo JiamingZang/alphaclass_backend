@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,16 +28,20 @@ import ai.z.openapi.service.videos.VideosResponse;
  * 视频生成服务：调用智谱 CogVideoX 生成视频。
  * <p>
  * 提交任务后落库；历史查询时会对 PROCESSING 状态的任务实时轮询智谱，
- * 完成则更新产物地址（经 SERVER_IP_PLACEHOLDER 代理）到库并同步到响应。
+ * 完成则更新产物地址（经本地 /proxy 代理转发，前缀由 app.video-proxy-prefix 配置）到库并同步到响应。
  */
 @Service
+@RequiredArgsConstructor
 public class VideoGenerationService {
 
-    @Resource
-    private ServiceDAO servicedao;
+    private final ServiceDAO servicedao;
 
     @Value("${ai.zhipu.api-key}")
     private String zhipuApiKey;
+
+    /** 视频产物对外地址前缀（智谱直链经本服务 /proxy 转发；部署时用 VIDEO_PROXY_PREFIX 覆盖） */
+    @Value("${app.video-proxy-prefix:http://localhost:8080/proxy/}")
+    private String videoProxyPrefix;
 
     /** 当日生成次数上限 */
     private static final int DAILY_GENERATION_LIMIT = 10;
@@ -86,31 +90,28 @@ public class VideoGenerationService {
     }
 
     /** 当前用户的视频生成历史（未删除，按创建时间倒序；处理中任务实时轮询更新） */
-    public List<Map<String, Object>> getHistory(int userId) {
-        List<Map<String, Object>> res = servicedao.getAllVideoResults();
-        List<Map<String, Object>> finalRes = new ArrayList<Map<String, Object>>();
-        for (Map<String, Object> rMap : res) {
-            if (Integer.valueOf(rMap.get("user_id").toString()) == userId) {
-                if (Integer.valueOf(rMap.get("is_deleted").toString()) == 0) {
-                    if (rMap.get("task_status").toString().equals("PROCESSING")) {
-                        VideosResponse apply = zhipuClient().videos()
-                                .videoGenerationsResult(rMap.get("request_id").toString());
-                        VideoObject response = apply.getData();
-                        String status = response.getTaskStatus();
-                        if (!status.equals("PROCESSING")) {
-                            VideoResult o = apply.getData().getVideoResult().get(0);
-                            servicedao.updateVideoResultById(
-                                    apply.getData().getTaskStatus(),
-                                    o.getUrl().replace("https://", "https://SERVER_IP_PLACEHOLDER/proxy/"),
-                                    o.getCoverImageUrl().replace("https://", "https://SERVER_IP_PLACEHOLDER/proxy/"),
-                                    rMap.get("request_id").toString());
-                            rMap.replace("task_status", apply.getData().getTaskStatus());
-                            rMap.put("url", o.getUrl());
-                            rMap.put("thumbnail_url", o.getCoverImageUrl());
-                        }
+    public List<GenVideoResult> getHistory(int userId) {
+        List<GenVideoResult> finalRes = new ArrayList<GenVideoResult>();
+        for (GenVideoResult r : servicedao.getAllVideoResults()) {
+            if (r.getUser_id() == userId && r.getIs_deleted() == 0) {
+                if (r.getTask_status().equals("PROCESSING")) {
+                    VideosResponse apply = zhipuClient().videos()
+                            .videoGenerationsResult(r.getRequest_id());
+                    VideoObject response = apply.getData();
+                    String status = response.getTaskStatus();
+                    if (!status.equals("PROCESSING")) {
+                        VideoResult o = apply.getData().getVideoResult().get(0);
+                        servicedao.updateVideoResultById(
+                                status,
+                                o.getUrl().replace("https://", videoProxyPrefix),
+                                o.getCoverImageUrl().replace("https://", videoProxyPrefix),
+                                r.getRequest_id());
+                        r.setTask_status(status);
+                        r.setUrl(o.getUrl());
+                        r.setThumbnail_url(o.getCoverImageUrl());
                     }
-                    finalRes.add(rMap);
                 }
+                finalRes.add(r);
             }
         }
         Collections.reverse(finalRes);
@@ -124,18 +125,11 @@ public class VideoGenerationService {
 
     /** 当日生成次数限制：超过上限则拒绝新任务 */
     private void checkExceedGenerationCount(int userId) {
-        List<Map<String, Object>> res = servicedao.getAllVideoResults();
-        int finalCount = 0;
-        for (Map<String, Object> rMap : res) {
-            if (Integer.valueOf(rMap.get("user_id").toString()) == userId) {
-                LocalDate time = Timestamp.valueOf(LocalDateTime.parse(rMap.get("created_at").toString()))
-                        .toLocalDateTime().toLocalDate();
-                LocalDate today = LocalDate.now();
-                if (time.isEqual(today)) {
-                    finalCount = finalCount + 1;
-                }
-            }
-        }
+        long finalCount = servicedao.getAllVideoResults().stream()
+                .filter(r -> r.getUser_id() == userId)
+                .filter(r -> Timestamp.valueOf(LocalDateTime.parse(r.getCreated_at()))
+                        .toLocalDateTime().toLocalDate().isEqual(LocalDate.now()))
+                .count();
         if (finalCount > DAILY_GENERATION_LIMIT) {
             throw new ServiceException("403", "You have exceeded generation limit per day.");
         }

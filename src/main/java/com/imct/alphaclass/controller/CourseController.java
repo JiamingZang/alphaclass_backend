@@ -3,7 +3,6 @@ package com.imct.alphaclass.controller;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,8 +20,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 
 @RestController
 public class CourseController {
-    @Autowired
-    private CourseService service;
+    private final CourseService service;
+
+    public CourseController(CourseService service) {
+        this.service = service;
+    }
 
     /** 查询用户全部课程（GET 放行，无需登录） */
     @RequestMapping(value = "/users/{owner}/courses", method =RequestMethod.GET)

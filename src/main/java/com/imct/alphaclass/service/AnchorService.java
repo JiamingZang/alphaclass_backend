@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 
@@ -20,13 +20,11 @@ import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
+@RequiredArgsConstructor
 public class AnchorService {
-    @Resource
-    private AnchorDAO dao;
-    @Resource
-    private CourseDAO coursedao;
-    @Resource
-    private UserDAO userdao;
+    private final AnchorDAO dao;
+    private final CourseDAO coursedao;
+    private final UserDAO userdao;
 
     /** 查询课程下全部锚点（pos/euler 嵌套、cid 移除、id 转字符串） */
     public List<Map<String, Object>> getAllAnchorsByCourse(String ownername, String coursename) {

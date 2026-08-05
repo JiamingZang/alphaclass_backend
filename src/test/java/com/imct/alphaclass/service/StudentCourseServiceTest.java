@@ -53,7 +53,7 @@ class StudentCourseServiceTest {
         // lenient：getLoginUserCourses 不经过这两步查询
         lenient().when(userdao.getByUsername("alice")).thenReturn(owner);
         lenient().when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
-        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
+        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
     }
 
     @Test
@@ -80,7 +80,7 @@ class StudentCourseServiceTest {
         assertEquals("2", u.get("id"));
         assertEquals("bob", u.get("username"));
         assertNull(u.get("password"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/users/bob", u.get("url"));
+        assertEquals("http://localhost:8080/v2/users/bob", u.get("url"));
     }
 
     @Test
@@ -155,7 +155,7 @@ class StudentCourseServiceTest {
         assertNull(courseResult.get("uid"));
         assertNull(courseResult.get("created_at"));
         assertNull(courseResult.get("updated_at"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/alice/math", courseResult.get("course_url"));
+        assertEquals("http://localhost:8080/v2/alice/math", courseResult.get("course_url"));
         Map<String, Object> userResult = (Map<String, Object>) courseResult.get("user");
         assertEquals("alice", userResult.get("username"));
         assertNull(userResult.get("password"));

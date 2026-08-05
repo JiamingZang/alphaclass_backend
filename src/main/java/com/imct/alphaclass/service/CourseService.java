@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,14 +21,12 @@ import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
+@RequiredArgsConstructor
 public class CourseService {
-    @Resource
-    private CourseDAO dao;
+    private final CourseDAO dao;
+    private final UserDAO userdao;
 
-    @Resource
-    private UserDAO userdao;
-
-    @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
+    @Value("${app.base-url:http://localhost:8080/v2}")
     private String baseUrl;
 
     /** 查询用户全部课程（user 嵌套、url 填充、时间格式化） */

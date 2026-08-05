@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,17 +21,15 @@ import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
+@RequiredArgsConstructor
 public class KeywordService {
-    @Resource
-    private KeywordDAO dao;
-    @Resource
-    private UserDAO userdao;
-    @Resource
-    private CourseDAO coursedao;
-    @Resource
-    private MediaService mediaservice;
+    private final KeywordDAO dao;
+    private final UserDAO userdao;
+    private final CourseDAO coursedao;
+    private final MediaService mediaservice;
 
-    @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
+    /** 对外 URL 前缀（部署时用 APP_BASE_URL 覆盖，代码不写死具体环境地址） */
+    @Value("${app.base-url:http://localhost:8080/v2}")
     private String baseUrl;
 
     /** 新增关键词：url 由 baseUrl + 路径拼装，cid 不出现在响应中 */

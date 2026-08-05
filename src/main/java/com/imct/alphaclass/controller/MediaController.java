@@ -3,7 +3,6 @@ package com.imct.alphaclass.controller;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,8 +15,11 @@ import com.imct.alphaclass.service.MediaService;
 
 @RestController
 public class MediaController {
-    @Autowired
-    private MediaService service;
+    private final MediaService service;
+
+    public MediaController(MediaService service) {
+        this.service = service;
+    }
 
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}/medias",method = RequestMethod.GET)
     public JSONResult getAllMediasByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword)  {

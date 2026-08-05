@@ -18,8 +18,9 @@ import com.imct.alphaclass.bean.TextToImageResult;
 @Mapper
 public interface ServiceDAO {
 
-    @Select("select * from text_to_image_result")
-    public List<Map<String, Object>> getAllResults();
+    /** 当前用户的文生图历史：join service_usage 过滤归属，SQL 层完成过滤与排序 */
+    @Select("select r.* from text_to_image_result r join service_usage u on r.usage_id = u.id where u.user_id = #{userId} and r.is_deleted = 0 order by r.created_at desc")
+    public List<Map<String, Object>> getHistoryByUserId(int userId);
     
     @Select("select * from service_usage where id = #{id}")
     public Map<String, Object> getUsageById(int id);
@@ -41,10 +42,10 @@ public interface ServiceDAO {
     public void addModelResult(GenModelResult result);
 
     @Select("select * from video_generate_result")
-    public List<Map<String, Object>> getAllVideoResults();
+    public List<GenVideoResult> getAllVideoResults();
 
     @Select("select * from model_generate_result")
-    public List<Map<String, Object>> getAllModelResults();
+    public List<GenModelResult> getAllModelResults();
 
     // @Delete("delete from anchor where id = #{id}")
     // public boolean deleteAnchorById(int id);

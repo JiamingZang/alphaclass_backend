@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,29 +38,19 @@ import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
+@RequiredArgsConstructor
 public class MediaService {
-    @Resource
-    private MediaDAO dao;
-    @Resource
-    private UserDAO userdao;
-    @Resource
-    private CourseDAO coursedao;
-    @Resource
-    private AnchorDAO anchordao;
-    @Resource
-    private AssetDAO assetdao;
-    @Resource
-    private KeywordDAO keyworddao;
-    @Resource
-    private MediaModelDAO mediamodeldao;
-    @Resource
-    private AnimationDAO animationdao;
-    @Resource
-    private PartDAO partdao;
-    @Resource
-    private MediaTranslationDAO mediatranslationdao;
-    @Resource
-    private MediaWikiDAO mediawikidao;
+    private final MediaDAO dao;
+    private final UserDAO userdao;
+    private final CourseDAO coursedao;
+    private final AnchorDAO anchordao;
+    private final AssetDAO assetdao;
+    private final KeywordDAO keyworddao;
+    private final MediaModelDAO mediamodeldao;
+    private final AnimationDAO animationdao;
+    private final PartDAO partdao;
+    private final MediaTranslationDAO mediatranslationdao;
+    private final MediaWikiDAO mediawikidao;
 
     /**
      * 按关键词新增媒体：先落 media 主记录，若带 media_model 则同步写

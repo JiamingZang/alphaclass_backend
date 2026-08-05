@@ -44,7 +44,7 @@ class UserControllerTest {
         Map<String, Object> u = new HashMap<>();
         u.put("id", "1");
         u.put("username", "alice");
-        u.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/alice");
+        u.put("url", "http://localhost:8080/v2/users/alice");
         users.add(u);
         when(service.findAll()).thenReturn(users);
 

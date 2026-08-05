@@ -3,7 +3,6 @@ package com.imct.alphaclass.controller;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,8 +17,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 
 @RestController
 public class StudentCourseController {
-    @Autowired
-    private StudentCourseService service;
+    private final StudentCourseService service;
+
+    public StudentCourseController(StudentCourseService service) {
+        this.service = service;
+    }
 
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.GET)
     public JSONResult getAllStudentsByCourse(@PathVariable String owner, @PathVariable String course) {

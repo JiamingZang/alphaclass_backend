@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,15 +21,13 @@ import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
+@RequiredArgsConstructor
 public class StudentCourseService {
-    @Resource
-    private StudentCourseDAO dao;
-    @Resource
-    private CourseDAO coursedao;
-    @Resource
-    private UserDAO userdao;
+    private final StudentCourseDAO dao;
+    private final CourseDAO coursedao;
+    private final UserDAO userdao;
 
-    @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
+    @Value("${app.base-url:http://localhost:8080/v2}")
     private String baseUrl;
 
     /** 查询课程下全部学生（学生 user 信息嵌套，密码移除、url 填充） */

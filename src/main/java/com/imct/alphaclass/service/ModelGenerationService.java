@@ -9,13 +9,14 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -50,10 +51,10 @@ import okhttp3.Response;
  * 任务完成时下载 GLB 到 OSS 并统计三角面数。本类同时提供下载/GLB 解析工具方法供定时任务复用。
  */
 @Service
+@RequiredArgsConstructor
 public class ModelGenerationService {
 
-    @Resource
-    private ServiceDAO servicedao;
+    private final ServiceDAO servicedao;
 
     @Value("${ai.tencent.secret-id}")
     private String tencentSecretId;
@@ -135,21 +136,13 @@ public class ModelGenerationService {
         servicedao.updateModelResultById(status, url, thumbnailUrl, polygonCount, size, requestId);
     }
 
-    /** 当前用户的模型生成历史（未删除，按创建时间倒序） */
-    public List<Map<String, Object>> getHistory(int userId) {
-        List<Map<String, Object>> res = servicedao.getAllModelResults();
-        List<Map<String, Object>> finalRes = new ArrayList<Map<String, Object>>();
-        if (res != null) {
-            for (Map<String, Object> rMap : res) {
-                if (Integer.valueOf(rMap.get("user_id").toString()) == userId) {
-                    if (Integer.valueOf(rMap.get("is_deleted").toString()) == 0) {
-                        finalRes.add(rMap);
-                    }
-                }
-            }
-        }
-        Collections.reverse(finalRes);
-        return finalRes;
+    /** 当前用户的模型生成历史（未删除，按创建时间倒序；created_at 为空时垫底，避免排序 NPE） */
+    public List<GenModelResult> getHistory(int userId) {
+        return servicedao.getAllModelResults().stream()
+                .filter(r -> r.getUser_id() == userId && r.getIs_deleted() == 0)
+                .sorted(Comparator.comparing(GenModelResult::getCreated_at,
+                        Comparator.nullsLast(String::compareTo)).reversed())
+                .collect(Collectors.toList());
     }
 
     /** 删除一条模型生成历史（软删除） */
@@ -160,18 +153,11 @@ public class ModelGenerationService {
     /** 当日生成次数限制：超过上限则拒绝新任务 */
     private void checkExceedGenerationCount(int userId) {
         // 注意：与视频生成共用今日次数统计（统计 video_generate_result 表），如需独立限额请调整
-        List<Map<String, Object>> res = servicedao.getAllVideoResults();
-        int finalCount = 0;
-        for (Map<String, Object> rMap : res) {
-            if (Integer.valueOf(rMap.get("user_id").toString()) == userId) {
-                LocalDate time = Timestamp.valueOf(LocalDateTime.parse(rMap.get("created_at").toString()))
-                        .toLocalDateTime().toLocalDate();
-                LocalDate today = LocalDate.now();
-                if (time.isEqual(today)) {
-                    finalCount = finalCount + 1;
-                }
-            }
-        }
+        long finalCount = servicedao.getAllVideoResults().stream()
+                .filter(r -> r.getUser_id() == userId)
+                .filter(r -> Timestamp.valueOf(LocalDateTime.parse(r.getCreated_at()))
+                        .toLocalDateTime().toLocalDate().isEqual(LocalDate.now()))
+                .count();
         if (finalCount > DAILY_GENERATION_LIMIT) {
             throw new ServiceException("403", "You have exceeded generation limit per day.");
         }

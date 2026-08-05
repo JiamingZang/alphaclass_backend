@@ -44,7 +44,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
+        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
     }
 
     @Test
@@ -62,8 +62,8 @@ class UserServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("1", result.get(0).get("id"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/users/alice", result.get(0).get("url"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/users/alice/courses", result.get(0).get("courses_url"));
+        assertEquals("http://localhost:8080/v2/users/alice", result.get(0).get("url"));
+        assertEquals("http://localhost:8080/v2/users/alice/courses", result.get(0).get("courses_url"));
     }
 
     @Test
@@ -86,8 +86,8 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals("2", result.get("id"));
         assertEquals("bob", result.get("username"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/users/bob", result.get("url"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/users/bob/courses", result.get("courses_url"));
+        assertEquals("http://localhost:8080/v2/users/bob", result.get("url"));
+        assertEquals("http://localhost:8080/v2/users/bob/courses", result.get("courses_url"));
     }
 
     @Test
@@ -115,7 +115,7 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals("1", result.get("id"));
         assertEquals("secret", result.get("password"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/users/alice", result.get("url"));
+        assertEquals("http://localhost:8080/v2/users/alice", result.get("url"));
     }
 
     @Test

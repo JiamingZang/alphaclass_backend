@@ -47,7 +47,7 @@ class CourseServiceTest {
         user.setName("Alice");
         // lenient：getById 系列测试不经过 getByUsername
         lenient().when(userdao.getByUsername("alice")).thenReturn(user);
-        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
+        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
     }
 
     private Course buildCourse() {
@@ -83,8 +83,8 @@ class CourseServiceTest {
         Map<String, Object> course = result.get(0);
         assertEquals("10", course.get("id"));
         // URL 前缀与控制器路由一致（含 /courses）
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/courses/alice/math/keywords", course.get("keywords_url"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/courses/alice/math/anchors", course.get("anchors_url"));
+        assertEquals("http://localhost:8080/v2/courses/alice/math/keywords", course.get("keywords_url"));
+        assertEquals("http://localhost:8080/v2/courses/alice/math/anchors", course.get("anchors_url"));
         assertEquals("2024-01-01 10:30:00", course.get("created_at"));
         assertEquals("2024-01-02 11:30:00", course.get("updated_at"));
         assertNull(course.get("uid"));
@@ -109,8 +109,8 @@ class CourseServiceTest {
         assertEquals(10, result.get("id"));
         assertEquals("math", result.get("name"));
         assertNull(result.get("uid"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/courses/alice/math/keywords", result.get("keywords_url"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/courses/alice/math/anchors", result.get("anchors_url"));
+        assertEquals("http://localhost:8080/v2/courses/alice/math/keywords", result.get("keywords_url"));
+        assertEquals("http://localhost:8080/v2/courses/alice/math/anchors", result.get("anchors_url"));
         // uid 被设置为当前用户
         verify(dao).addCourse(argThat(c -> c.getUid() == 1));
         // 时间戳非空
@@ -128,7 +128,7 @@ class CourseServiceTest {
         assertEquals("math", result.get("name"));
         assertNull(result.get("uid"));
         Map<String, Object> userResult = (Map<String, Object>) result.get("user");
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/users/alice", userResult.get("url"));
+        assertEquals("http://localhost:8080/v2/users/alice", userResult.get("url"));
     }
 
     @Test
@@ -180,7 +180,7 @@ class CourseServiceTest {
 
         assertNotNull(result);
         assertEquals("10", result.get("id"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/courses/alice/math", result.get("url"));
+        assertEquals("http://localhost:8080/v2/courses/alice/math", result.get("url"));
         verify(dao).updateCourseByUidAndName(eq("physics"), eq("physics course"), eq("http://example.com/p.png"),
                 anyString(), eq(1), eq("math"));
     }

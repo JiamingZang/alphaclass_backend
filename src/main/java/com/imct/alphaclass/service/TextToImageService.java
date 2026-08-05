@@ -3,16 +3,14 @@ package com.imct.alphaclass.service;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -42,10 +40,10 @@ import okhttp3.Response;
  * text_to_image_result 结果表；历史查询按当前用户过滤、按创建时间倒序返回。
  */
 @Service
+@RequiredArgsConstructor
 public class TextToImageService {
 
-    @Resource
-    private ServiceDAO servicedao;
+    private final ServiceDAO servicedao;
 
     @Value("${ai.baidu.client-id}")
     private String baiduClientId;
@@ -100,23 +98,9 @@ public class TextToImageService {
         return res;
     }
 
-    /** 当前用户的文生图历史（未删除，按创建时间倒序） */
+    /** 当前用户的文生图历史（未删除，按创建时间倒序；用户归属与过滤在 SQL join 中完成） */
     public List<Map<String, Object>> getHistory(int userId) {
-        List<Map<String, Object>> res = servicedao.getAllResults();
-        List<Map<String, Object>> finalRes = new ArrayList<Map<String, Object>>();
-        if (res != null) {
-            for (Map<String, Object> rMap : res) {
-                int usageid = Integer.valueOf(rMap.get("usage_id").toString());
-                Map<String, Object> usage = servicedao.getUsageById(usageid);
-                if (usage != null && Integer.valueOf(usage.get("user_id").toString()) == userId) {
-                    if (Integer.valueOf(rMap.get("is_deleted").toString()) == 0) {
-                        finalRes.add(rMap);
-                    }
-                }
-            }
-        }
-        Collections.reverse(finalRes);
-        return finalRes;
+        return servicedao.getHistoryByUserId(userId);
     }
 
     /** 删除一条文生图历史（软删除） */

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,8 +19,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 
 @RestController
 public class UserController {
-    @Autowired
-    private UserService service;
+    private final UserService service;
+
+    public UserController(UserService service) {
+        this.service = service;
+    }
 
     @RequestMapping(value = "/users",method = RequestMethod.GET)
     public JSONResult findAll() {

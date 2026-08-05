@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 
@@ -21,13 +21,11 @@ import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
+@RequiredArgsConstructor
 public class AssetService {
 
-    @Resource
-    private AssetDAO dao;
-
-    @Resource
-    private UserDAO userdao;
+    private final AssetDAO dao;
+    private final UserDAO userdao;
 
     /**
      * 查询用户资产列表：传 type 时按类型分页查询，否则查全部；

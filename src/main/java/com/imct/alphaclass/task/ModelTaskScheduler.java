@@ -2,13 +2,13 @@ package com.imct.alphaclass.task;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.imct.alphaclass.bean.GenModelResult;
 import com.imct.alphaclass.dao.ServiceDAO;
 import com.imct.alphaclass.service.ModelGenerationService;
 import com.tencentcloudapi.ai3d.v20250513.models.QueryHunyuanTo3DRapidJobResponse;
@@ -21,31 +21,28 @@ import com.tencentcloudapi.common.exception.TencentCloudSDKException;
  * 腾讯云查询与 OSS 传输逻辑复用 {@link ModelGenerationService}，本类只负责调度与状态流转。
  */
 @Component
+@RequiredArgsConstructor
 public class ModelTaskScheduler {
 
-    @Resource
-    private ServiceDAO servicedao;
-
-    @Resource
-    private ModelGenerationService modelService;
+    private final ServiceDAO servicedao;
+    private final ModelGenerationService modelService;
 
     @Scheduled(fixedDelay = 30000)
     public void pollModelTasks() {
-        List<Map<String, Object>> results = servicedao.getAllModelResults();
-        for (Map<String, Object> rMap : results) {
-            String status = rMap.get("task_status").toString();
-            if (status.equals("GENERATING")) {
-                processGeneratingTask(rMap);
+        List<GenModelResult> results = servicedao.getAllModelResults();
+        for (GenModelResult r : results) {
+            if (r.getTask_status().equals("GENERATING")) {
+                processGeneratingTask(r);
             }
         }
     }
 
-    private void processGeneratingTask(Map<String, Object> rMap) {
+    private void processGeneratingTask(GenModelResult r) {
         try {
             QueryHunyuanTo3DRapidJobResponse queryResponse = modelService
-                    .queryModelGenerateRequest(rMap.get("job_id").toString());
+                    .queryModelGenerateRequest(r.getJob_id());
             if (queryResponse.getStatus().equals("FAIL")) {
-                servicedao.updateModelResultById("FAILED", "", "", 0, 0, rMap.get("request_id").toString());
+                servicedao.updateModelResultById("FAILED", "", "", 0, 0, r.getRequest_id());
             } else if (queryResponse.getStatus().equals("DONE")) {
                 String tencentUrl = "";
                 String tencentPreviewUrl = "";
@@ -55,7 +52,7 @@ public class ModelTaskScheduler {
                 }
                 String ossUrl = "";
                 String ossThumbnailUrl = "";
-                String jobId = rMap.get("job_id").toString();
+                String jobId = r.getJob_id();
                 int polygonCount = 0;
                 try {
                     if (tencentUrl.length() > 0) {
@@ -71,7 +68,7 @@ public class ModelTaskScheduler {
                     e.printStackTrace();
                 }
                 servicedao.updateModelResultById("FINISHED", ossUrl, ossThumbnailUrl, polygonCount, 0,
-                        rMap.get("request_id").toString());
+                        r.getRequest_id());
             }
         } catch (TencentCloudSDKException e) {
             e.printStackTrace();

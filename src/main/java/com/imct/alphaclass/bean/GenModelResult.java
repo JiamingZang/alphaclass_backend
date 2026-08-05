@@ -13,8 +13,10 @@ public class GenModelResult {
     private String prompt_image_url;
     private String url;
     private String thumbnail_url;
-    private String polygon_count;
-    private String size;
+    /** 三角面数（表列为 int，保持数字类型与历史 Map 输出一致） */
+    private Integer polygon_count;
+    /** 模型尺寸（表列为 int，保持数字类型与历史 Map 输出一致） */
+    private Integer size;
     private String created_at;
     private int is_deleted;
     private String task_status;
@@ -91,19 +93,19 @@ public class GenModelResult {
         this.thumbnail_url = thumbnail_url;
     }
 
-    public String getPolygon_count() {
+    public Integer getPolygon_count() {
         return polygon_count;
     }
 
-    public void setPolygon_count(String polygon_count) {
+    public void setPolygon_count(Integer polygon_count) {
         this.polygon_count = polygon_count;
     }
 
-    public String getSize() {
+    public Integer getSize() {
         return size;
     }
 
-    public void setSize(String size) {
+    public void setSize(Integer size) {
         this.size = size;
     }
 

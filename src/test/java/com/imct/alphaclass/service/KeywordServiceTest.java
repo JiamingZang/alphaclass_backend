@@ -60,7 +60,7 @@ class KeywordServiceTest {
         // lenient：守卫类测试不经过完整链路
         lenient().when(userdao.getByUsername("alice")).thenReturn(user);
         lenient().when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
-        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
+        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
     }
 
     private Keyword buildKeyword(int id, String name) {
@@ -100,7 +100,7 @@ class KeywordServiceTest {
         assertEquals("101", result.get("id"));
         assertEquals("k2", result.get("keyword"));
         assertNull(result.get("cid"));
-        assertEquals("https://SERVER_IP_PLACEHOLDER/v2/alice/math/k2", result.get("url"));
+        assertEquals("http://localhost:8080/v2/alice/math/k2", result.get("url"));
     }
 
     @Test

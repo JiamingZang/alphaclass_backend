@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,11 +15,11 @@ import com.imct.alphaclass.dao.UserDAO;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
-    @Resource
-    private UserDAO dao;
+    private final UserDAO dao;
 
-    @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
+    @Value("${app.base-url:http://localhost:8080/v2}")
     private String baseUrl;
 
     /** 查询全部用户（id 转字符串、url/courses_url 填充） */
