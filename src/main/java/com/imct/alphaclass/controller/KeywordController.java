@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.KeywordService;
 
-import cn.hutool.json.JSON;
-
 @RestController
 public class KeywordController {
     @Autowired
@@ -32,8 +30,9 @@ public class KeywordController {
     }
 
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}",method = RequestMethod.DELETE)
-    public void deleteKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword) {
-        service.deleteKeywordById(owner, course, keyword);   
+    public JSONResult deleteKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword) {
+        service.deleteKeywordById(owner, course, keyword);
+        return JSONResult.customWithStatus("204");
     }
 
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}",method = RequestMethod.GET)

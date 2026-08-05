@@ -78,6 +78,15 @@ class MediaControllerTest {
     }
 
     @Test
+    void getMediaById_notFound_returns404() throws Exception {
+        when(service.getMediaById("math", "alice", "k1", 999)).thenReturn(null);
+
+        mockMvc.perform(get("/courses/alice/math/k1/medias/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("媒体不存在"));
+    }
+
+    @Test
     void addMediaByKeyword_returnsCreatedMedia() throws Exception {
         Map<String, Object> result = new HashMap<>();
         result.put("id", "200");
@@ -103,9 +112,9 @@ class MediaControllerTest {
     }
 
     @Test
-    void deleteMediaById_returns200() throws Exception {
+    void deleteMediaById_returns204() throws Exception {
         mockMvc.perform(delete("/courses/alice/math/k1/medias/200").header("token", buildToken()))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
         verify(service).deleteMediaById("math", "alice", "k1", 200);
     }
 

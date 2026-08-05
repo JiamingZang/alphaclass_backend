@@ -106,9 +106,9 @@ class KeywordControllerTest {
     }
 
     @Test
-    void deleteKeywordByCourse_returns200() throws Exception {
+    void deleteKeywordByCourse_returns204() throws Exception {
         mockMvc.perform(delete("/courses/alice/math/k1").header("token", buildToken()))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
         verify(service).deleteKeywordById("alice", "math", "k1");
     }
 }

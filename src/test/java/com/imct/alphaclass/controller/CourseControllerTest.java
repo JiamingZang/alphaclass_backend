@@ -86,11 +86,11 @@ class CourseControllerTest {
     }
 
     @Test
-    void getByUserAndName_notFound_returns401() throws Exception {
+    void getByUserAndName_notFound_returns404() throws Exception {
         when(service.getByUserAndName("alice", "nope")).thenReturn(null);
 
         mockMvc.perform(get("/courses/alice/nope"))
-                .andExpect(status().isUnauthorized())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").exists());
     }
 
@@ -104,6 +104,15 @@ class CourseControllerTest {
         mockMvc.perform(get("/courses/actions/get-project-by-id").param("id", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("10"));
+    }
+
+    @Test
+    void getById_notFound_returns404() throws Exception {
+        when(service.getById(999)).thenReturn(null);
+
+        mockMvc.perform(get("/courses/actions/get-project-by-id").param("id", "999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("课程不存在"));
     }
 
     @Test
@@ -177,7 +186,7 @@ class CourseControllerTest {
         try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
             mocked.when(TokenUtils::getCurrentUser).thenReturn(currentUser());
             mockMvc.perform(delete("/courses/alice/math").header("token", buildToken()))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
         }
     }
 }

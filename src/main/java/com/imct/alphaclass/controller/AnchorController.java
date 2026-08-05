@@ -33,7 +33,7 @@ public class AnchorController {
             if (result!=null) {
                 return JSONResult.successWithData(result);
             }else{
-                return JSONResult.failWithMsg("401", "");
+                return JSONResult.failWithMsg("404", "课程不存在");
             }
         }else{
             return JSONResult.failWithMsg("401", "仅课程创建者可修改");
@@ -46,7 +46,7 @@ public class AnchorController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("401", "删除失败");
+            return JSONResult.failWithMsg("404", "锚点不存在");
         }
     }
     
@@ -55,7 +55,7 @@ public class AnchorController {
         if (service.deleteAnchorById(owner, course, anchor_id)) {
             return JSONResult.customWithStatus("204");
         }else{
-            return JSONResult.failWithMsg("401", "删除失败");
+            return JSONResult.failWithMsg("404", "锚点不存在");
         }
     }
 }

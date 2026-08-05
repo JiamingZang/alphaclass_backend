@@ -23,6 +23,9 @@ ai:
     bucket: ${OSS_BUCKET:alphaclass}
     access-key-id: ${OSS_ACCESS_KEY_ID}
     access-key-secret: ${OSS_ACCESS_KEY_SECRET}
+  youdao:
+    app-key: ${YOUDAO_APP_KEY}
+    app-secret: ${YOUDAO_APP_SECRET}
 logging:
   level:
     root: INFO

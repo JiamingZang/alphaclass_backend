@@ -44,7 +44,7 @@ public class CourseController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("401", "");
+            return JSONResult.failWithMsg("404", "课程不存在");
         }
     }
 
@@ -54,7 +54,7 @@ public class CourseController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("401", "");
+            return JSONResult.failWithMsg("404", "课程不存在");
         }
     }
 
@@ -76,7 +76,7 @@ public class CourseController {
     public JSONResult deleteByUserAndName(@PathVariable String owner, @PathVariable String course) {
         if (TokenUtils.getCurrentUser()!=null) {
             service.deleteByUserAndName(owner, course);
-            return null;
+            return JSONResult.customWithStatus("204");
         }else{
             return JSONResult.failWithMsg("401", "无token");
         }

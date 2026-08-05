@@ -111,6 +111,9 @@ public class WikiController {
 
              //对于无歧义词或有常见解释的多义词（如苹果）可以直接获取百科解释desrciption
             Element kwbox = document.select("meta[name=description]").first();
+            if (kwbox == null) {
+                return JSONResult.successWithData(results);
+            }
             String description = kwbox.attr("content");
 
             // 该关键词无解释

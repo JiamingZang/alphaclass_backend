@@ -131,11 +131,11 @@ class AnchorControllerTest {
     }
 
     @Test
-    void deleteAnchorByCourse_fail_returns401() throws Exception {
+    void deleteAnchorByCourse_fail_returns404() throws Exception {
         when(service.deleteAnchorById("alice", "math", 400)).thenReturn(false);
 
         mockMvc.perform(delete("/courses/alice/math/anchors/400").header("token", buildToken()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("删除失败"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("锚点不存在"));
     }
 }

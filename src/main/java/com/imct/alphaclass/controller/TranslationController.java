@@ -1,5 +1,6 @@
 package com.imct.alphaclass.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -145,9 +146,11 @@ public class TranslationController {
         public Map<String,String> dict;
     }
 
-    private static final String APP_KEY = "REPLACED_YOUDAO_APP_KEY";
+    @Value("${ai.youdao.app-key}")
+    private String appKey;
 
-    private static final String APP_SECRET = "REPLACED_YOUDAO_APP_SECRET";
+    @Value("${ai.youdao.app-secret}")
+    private String appSecret;
 
     //获取请求参数的map
     public Map<String,String> getRequestMap(String q,String from,String to) {
@@ -158,9 +161,9 @@ public class TranslationController {
         params.put("signType", "v3");
         String curtime = String.valueOf(System.currentTimeMillis() / 1000);
         params.put("curtime", curtime);
-        String signStr = APP_KEY + truncate(q) + salt + curtime + APP_SECRET;
+        String signStr = appKey + truncate(q) + salt + curtime + appSecret;
         String sign = getDigest(signStr);
-        params.put("appKey", APP_KEY);
+        params.put("appKey", appKey);
         params.put("q", q);
         params.put("salt", salt);
         params.put("sign", sign);

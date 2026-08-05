@@ -37,17 +37,26 @@ public class MediaController {
     }
 
     @RequestMapping(value = "/courses/{user}/{course}/{keyword}/medias/{media_id}",method = RequestMethod.DELETE)
-    public void deleteMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
+    public JSONResult deleteMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
         service.deleteMediaById(course, user, keyword, media_id);
+        return JSONResult.customWithStatus("204");
     }
 
     @RequestMapping(value = "/courses/{user}/{course}/{keyword}/medias/{media_id}",method = RequestMethod.GET)
     public JSONResult getMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
-        return JSONResult.successWithData(service.getMediaById(course, user, keyword, media_id));
+        Map<String, Object> result = service.getMediaById(course, user, keyword, media_id);
+        if (result == null) {
+            return JSONResult.failWithMsg("404", "媒体不存在");
+        }
+        return JSONResult.successWithData(result);
     }
 
     @RequestMapping(value = "/courses/{user}/{course}/{keyword}/medias/{media_id}",method = RequestMethod.PUT)
     public JSONResult modifyMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id,@RequestBody Map<String, Object> params) {
-        return JSONResult.successWithData(service.modifyMediaById(course, user, keyword, media_id, params));
+        Map<String, Object> result = service.modifyMediaById(course, user, keyword, media_id, params);
+        if (result == null) {
+            return JSONResult.failWithMsg("404", "媒体不存在");
+        }
+        return JSONResult.successWithData(result);
     }
 }

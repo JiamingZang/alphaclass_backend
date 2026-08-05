@@ -47,9 +47,9 @@ public class AnchorService {
         anchor.setPos_y(Float.parseFloat("".equals(pos.get("pos_y").toString())?"0.0":pos.get("pos_y").toString()));
         anchor.setPos_z(Float.parseFloat("".equals(pos.get("pos_z").toString())?"0.0":pos.get("pos_z").toString()));
         Map<String, Object> euler = (Map<String, Object>)params.get("euler");
-        anchor.setEuler_x(Float.parseFloat("".equals(euler.get("euler_x").toString())?"0.0f":euler.get("euler_x").toString()));
-        anchor.setEuler_y(Float.parseFloat("".equals(euler.get("euler_y").toString())?"0.0f":euler.get("euler_y").toString()));
-        anchor.setEuler_z(Float.parseFloat("".equals(euler.get("euler_z").toString())?"0.0f":euler.get("euler_z").toString()));
+        anchor.setEuler_x(Float.parseFloat("".equals(euler.get("euler_x").toString())?"0.0":euler.get("euler_x").toString()));
+        anchor.setEuler_y(Float.parseFloat("".equals(euler.get("euler_y").toString())?"0.0":euler.get("euler_y").toString()));
+        anchor.setEuler_z(Float.parseFloat("".equals(euler.get("euler_z").toString())?"0.0":euler.get("euler_z").toString()));
         dao.addAnchor(anchor);
         
         anchor = dao.getAnchorById(anchor.getId());
@@ -98,9 +98,9 @@ public class AnchorService {
             if (params.get("euler") != null) {
                 
                 Map<String, Object> euler = (Map<String, Object>)params.get("euler");
-                anchor.setEuler_x(Float.parseFloat("".equals(euler.get("euler_x").toString())?"0.0f":euler.get("euler_x").toString()));
-                anchor.setEuler_y(Float.parseFloat("".equals(euler.get("euler_y").toString())?"0.0f":euler.get("euler_y").toString()));
-                anchor.setEuler_z(Float.parseFloat("".equals(euler.get("euler_z").toString())?"0.0f":euler.get("euler_z").toString()));
+                anchor.setEuler_x(Float.parseFloat("".equals(euler.get("euler_x").toString())?"0.0":euler.get("euler_x").toString()));
+                anchor.setEuler_y(Float.parseFloat("".equals(euler.get("euler_y").toString())?"0.0":euler.get("euler_y").toString()));
+                anchor.setEuler_z(Float.parseFloat("".equals(euler.get("euler_z").toString())?"0.0":euler.get("euler_z").toString()));
             }else{
                 anchor.setEuler_x(old_anchor.getEuler_x());
                 anchor.setEuler_y(old_anchor.getEuler_y());

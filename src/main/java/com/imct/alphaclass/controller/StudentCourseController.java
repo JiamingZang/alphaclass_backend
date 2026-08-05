@@ -1,6 +1,5 @@
 package com.imct.alphaclass.controller;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.StudentCourseService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -22,10 +22,7 @@ public class StudentCourseController {
 
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.GET)
     public JSONResult getAllStudentsByCourse(@PathVariable String owner, @PathVariable String course) {
-        Map<String, List<Map<String, Object>>> result = new HashMap<String,List<Map<String, Object>>>();
-        result.put("students", service.getAllStudentsByCourse(owner, course));
-        JSONResult re = new JSONResult<Map<String,List<Map<String,Object>>>>("200",result);
-        return JSONResult.successWithData(result);   
+        return JSONResult.successWithData(service.getAllStudentsByCourse(owner, course));
     }
 
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.POST)
@@ -40,7 +37,10 @@ public class StudentCourseController {
 
     @RequestMapping(value = "/user/register-courses",method = RequestMethod.GET)
     public JSONResult getLoginUserCourses() {
-        return JSONResult.successWithData(
-            service.getLoginUserCourses(TokenUtils.getCurrentUser().getId()));
+        User user = TokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg("401", "无token");
+        }
+        return JSONResult.successWithData(service.getLoginUserCourses(user.getId()));
     }
 }
