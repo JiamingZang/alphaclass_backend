@@ -51,13 +51,13 @@ public class MediaService {
     @Resource
     private MediaModelDAO mediamodeldao;
     @Resource
-    private AnimationDAO animationDAO;
+    private AnimationDAO animationdao;
     @Resource
-    private PartDAO partDAO;
+    private PartDAO partdao;
     @Resource
-    private MediaTranslationDAO mediaTranslationDAO;
+    private MediaTranslationDAO mediatranslationdao;
     @Resource
-    private MediaWikiDAO mediaWikiDAO;
+    private MediaWikiDAO mediawikidao;
 
     @Transactional
     public Map<String, Object> addMediaByKeyword(String ownername, String coursename, String keywordname,
@@ -111,7 +111,7 @@ public class MediaService {
                 Animation tempAnimation = new Animation();
                 tempAnimation.setName(animationName);
                 tempAnimation.setMid(mid);
-                animationDAO.addAnimation(tempAnimation);
+                animationdao.addAnimation(tempAnimation);
             }
             // 添加 part
             for (Map<String, Object> partmessage : parts) {
@@ -139,7 +139,7 @@ public class MediaService {
                 part.setTargetEuler_y(Float.valueOf(targeteuler.get("euler_y").toString()));
                 part.setTargetEuler_z(Float.valueOf(targeteuler.get("euler_z").toString()));
 
-                partDAO.addPart(part);
+                partdao.addPart(part);
             }
         }
 
@@ -175,14 +175,14 @@ public class MediaService {
             media_translation_obj.setPhonetic_US(media_translation.get("phonetic_US").toString());
             media_translation_obj.setSentence_CN(media_translation.get("sentence_CN").toString());
             media_translation_obj.setSentence_EN(media_translation.get("sentence_EN").toString());
-            mediaTranslationDAO.addMediaTranslation(media_translation_obj);
+            mediatranslationdao.addMediaTranslation(media_translation_obj);
         } else if (media.getType().equals("wiki")) {
             Map<String, Object> media_wiki = (Map<String, Object>) params.get("media_wiki");
             MediaWiki media_wiki_obj = new MediaWiki();
             media_wiki_obj.setId(media.getId());
             media_wiki_obj.setWord(media_wiki.get("word").toString());
             media_wiki_obj.setWiki(media_wiki.get("wiki").toString());
-            mediaWikiDAO.addWikiinfo(media_wiki_obj);
+            mediawikidao.addWikiinfo(media_wiki_obj);
         }
 
         return buildMediaResponse(media);
@@ -255,11 +255,11 @@ public class MediaService {
                 && params.get("type") != null
                 && !(params.get("type").equals("translation")
                         || params.get("type").equals("wiki"))) {
-            if (mediaWikiDAO.getWikiinfoById(media_id) != null) {
-                mediaWikiDAO.deleteWikiinfoById(media_id);
+            if (mediawikidao.getWikiinfoById(media_id) != null) {
+                mediawikidao.deleteWikiinfoById(media_id);
             }
-            if (mediaTranslationDAO.getMediaTranslationById(media_id) != null) {
-                mediaTranslationDAO.deleteMediaTranslationById(media_id);
+            if (mediatranslationdao.getMediaTranslationById(media_id) != null) {
+                mediatranslationdao.deleteMediaTranslationById(media_id);
             }
         }
         dao.updateMediaById(
@@ -300,19 +300,19 @@ public class MediaService {
             // 更改 animation 表，思路是先删除对应 modelinfo 所有的 animation 再加上去
             if (model_info.get("animations") != null) {
                 List<String> animations = (ArrayList<String>) model_info.get("animations");
-                animationDAO.deleteAnimationByModelinfoId(media_id);
+                animationdao.deleteAnimationByModelinfoId(media_id);
 
                 for (String animationName : animations) {
                     Animation tempAnimation = new Animation();
                     tempAnimation.setName(animationName);
                     tempAnimation.setMid(media_id);
-                    animationDAO.addAnimation(tempAnimation);
+                    animationdao.addAnimation(tempAnimation);
                 }
             }
             // 更改 part 表，思路同上
             if (model_info.get("parts") != null) {
                 List<Map<String, Object>> parts = (ArrayList<Map<String, Object>>) model_info.get("parts");
-                partDAO.deletePartsByMediaID(media_id);
+                partdao.deletePartsByMediaID(media_id);
                 for (Map<String, Object> partmessage : parts) {
                     Part part = new Part();
                     part.setMediaid(Integer.parseInt(partmessage.get("media_id").toString()));
@@ -338,14 +338,14 @@ public class MediaService {
                     part.setTargetEuler_y(Float.valueOf(targeteuler.get("euler_y").toString()));
                     part.setTargetEuler_z(Float.valueOf(targeteuler.get("euler_z").toString()));
 
-                    partDAO.addPart(part);
+                    partdao.addPart(part);
                 }
             }
         } else if (params.get("media_translation") != null) {
             Map<String, Object> media_translation = (Map<String, Object>) params.get("media_translation");
-            MediaTranslation old_media_translation = mediaTranslationDAO.getMediaTranslationById(media_id);
+            MediaTranslation old_media_translation = mediatranslationdao.getMediaTranslationById(media_id);
             if (old_media_translation != null) {
-                mediaTranslationDAO.updateMediaTranslationById(
+                mediatranslationdao.updateMediaTranslationById(
                         media_translation.get("word") == null ? old_media_translation.getWord()
                                 : media_translation.get("word").toString(),
                         media_translation.get("translation_english") == null
@@ -361,8 +361,8 @@ public class MediaService {
                                 : media_translation.get("sentence_EN").toString(),
                         media_id);
             } else {
-                if (mediaWikiDAO.getWikiinfoById(media_id) != null) {
-                    mediaWikiDAO.deleteWikiinfoById(media_id);
+                if (mediawikidao.getWikiinfoById(media_id) != null) {
+                    mediawikidao.deleteWikiinfoById(media_id);
                 }
                 MediaTranslation temp_media_translation = new MediaTranslation();
                 temp_media_translation.setWord(media_translation.get("word").toString());
@@ -372,27 +372,27 @@ public class MediaService {
                 temp_media_translation.setSentence_CN(media_translation.get("sentence_CN").toString());
                 temp_media_translation.setSentence_EN(media_translation.get("sentence_EN").toString());
                 temp_media_translation.setId(media_id);
-                mediaTranslationDAO.addMediaTranslation(temp_media_translation);
+                mediatranslationdao.addMediaTranslation(temp_media_translation);
             }
         } else if (params.get("media_wiki") != null) {
             Map<String, Object> media_wiki = (Map<String, Object>) params.get("media_wiki");
-            MediaWiki old_media_wiki = mediaWikiDAO.getWikiinfoById(media_id);
+            MediaWiki old_media_wiki = mediawikidao.getWikiinfoById(media_id);
             if (old_media_wiki != null) {
-                mediaWikiDAO.updateWikiinfoById(
+                mediawikidao.updateWikiinfoById(
                         media_wiki.get("word") == null ? old_media_wiki.getWord()
                                 : media_wiki.get("word").toString(),
                         media_wiki.get("wiki") == null ? old_media_wiki.getWiki()
                                 : media_wiki.get("wiki").toString(),
                         media_id);
             } else {
-                if (mediaTranslationDAO.getMediaTranslationById(media_id) != null) {
-                    mediaTranslationDAO.deleteMediaTranslationById(media_id);
+                if (mediatranslationdao.getMediaTranslationById(media_id) != null) {
+                    mediatranslationdao.deleteMediaTranslationById(media_id);
                 }
                 MediaWiki temp_media_wiki = new MediaWiki();
                 temp_media_wiki.setWord(media_wiki.get("word").toString());
                 temp_media_wiki.setWiki(media_wiki.get("wiki").toString());
                 temp_media_wiki.setId(media_id);
-                mediaWikiDAO.addWikiinfo(temp_media_wiki);
+                mediawikidao.addWikiinfo(temp_media_wiki);
             }
         }
         if (media != null && media.getKid() == keyword.getId()) {
@@ -462,23 +462,23 @@ public class MediaService {
                 scale.put("scale_y", mediaModel.getScale_y());
                 scale.put("scale_z", mediaModel.getScale_z());
                 List<String> animationsList = new ArrayList<String>();
-                for (Map<String, Object> animation : animationDAO.getAnimationsByModelinfoId(mediaModel.getId())) {
+                for (Map<String, Object> animation : animationdao.getAnimationsByModelinfoId(mediaModel.getId())) {
                     animationsList.add(animation.get("name").toString());
                 }
                 ac.put("anime_to_play", mediaModel.getAnime_to_play());
                 ac.put("scale", scale);
                 ac.put("animations", animationsList);
-                ac.put("parts", buildParts(partDAO.getAllByMediaID(mediaModel.getId())));
+                ac.put("parts", buildParts(partdao.getAllByMediaID(mediaModel.getId())));
             }
         } else if (type.equals("translation")) {
-            MediaTranslation mediaTranslation = mediaTranslationDAO.getMediaTranslationById(mediaId);
+            MediaTranslation mediaTranslation = mediatranslationdao.getMediaTranslationById(mediaId);
             if (mediaTranslation != null) {
                 Map<String, Object> res = MapUtils.toMap(mediaTranslation);
                 res.remove("id");
                 ac.put("media_translation", res);
             }
         } else if (type.equals("wiki")) {
-            MediaWiki mediaWiki = mediaWikiDAO.getWikiinfoById(mediaId);
+            MediaWiki mediaWiki = mediawikidao.getWikiinfoById(mediaId);
             if (mediaWiki != null) {
                 Map<String, Object> res = MapUtils.toMap(mediaWiki);
                 res.remove("id");

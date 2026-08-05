@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imct.alphaclass.bean.Course;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.CourseService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -34,7 +35,7 @@ public class CourseController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("401", "");
+            return JSONResult.failWithMsg(Constants.CODE_401, "");
         }
     }
 
@@ -44,7 +45,7 @@ public class CourseController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("404", "课程不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, "课程不存在");
         }
     }
 
@@ -54,7 +55,7 @@ public class CourseController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("404", "课程不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, "课程不存在");
         }
     }
 
@@ -65,10 +66,10 @@ public class CourseController {
             if (result!=null) {
                 return JSONResult.successWithData(result);
             }else{
-                return JSONResult.failWithMsg("401", "");
+                return JSONResult.failWithMsg(Constants.CODE_401, "");
             }
         }else{
-            return JSONResult.failWithMsg("401", "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
     }
 
@@ -76,9 +77,9 @@ public class CourseController {
     public JSONResult deleteByUserAndName(@PathVariable String owner, @PathVariable String course) {
         if (TokenUtils.getCurrentUser()!=null) {
             service.deleteByUserAndName(owner, course);
-            return JSONResult.customWithStatus("204");
+            return JSONResult.customWithStatus(Constants.CODE_204);
         }else{
-            return JSONResult.failWithMsg("401", "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }
     }
 }

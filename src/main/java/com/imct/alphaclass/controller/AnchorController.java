@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.AnchorService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -33,10 +34,10 @@ public class AnchorController {
             if (result!=null) {
                 return JSONResult.successWithData(result);
             }else{
-                return JSONResult.failWithMsg("404", "课程不存在");
+                return JSONResult.failWithMsg(Constants.CODE_404, "课程不存在");
             }
         }else{
-            return JSONResult.failWithMsg("401", "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }  
     }
 
@@ -46,16 +47,16 @@ public class AnchorController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("404", "锚点不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, "锚点不存在");
         }
     }
     
     @RequestMapping(value = "/courses/{owner}/{course}/anchors/{anchor_id}",method = RequestMethod.DELETE)
     public JSONResult deleteAnchorByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable int anchor_id) {
         if (service.deleteAnchorById(owner, course, anchor_id)) {
-            return JSONResult.customWithStatus("204");
+            return JSONResult.customWithStatus(Constants.CODE_204);
         }else{
-            return JSONResult.failWithMsg("404", "锚点不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, "锚点不存在");
         }
     }
 }

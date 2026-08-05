@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.MediaService;
 
@@ -39,14 +40,14 @@ public class MediaController {
     @RequestMapping(value = "/courses/{user}/{course}/{keyword}/medias/{media_id}",method = RequestMethod.DELETE)
     public JSONResult deleteMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
         service.deleteMediaById(course, user, keyword, media_id);
-        return JSONResult.customWithStatus("204");
+        return JSONResult.customWithStatus(Constants.CODE_204);
     }
 
     @RequestMapping(value = "/courses/{user}/{course}/{keyword}/medias/{media_id}",method = RequestMethod.GET)
     public JSONResult getMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
         Map<String, Object> result = service.getMediaById(course, user, keyword, media_id);
         if (result == null) {
-            return JSONResult.failWithMsg("404", "媒体不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, "媒体不存在");
         }
         return JSONResult.successWithData(result);
     }
@@ -55,7 +56,7 @@ public class MediaController {
     public JSONResult modifyMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id,@RequestBody Map<String, Object> params) {
         Map<String, Object> result = service.modifyMediaById(course, user, keyword, media_id, params);
         if (result == null) {
-            return JSONResult.failWithMsg("404", "媒体不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, "媒体不存在");
         }
         return JSONResult.successWithData(result);
     }

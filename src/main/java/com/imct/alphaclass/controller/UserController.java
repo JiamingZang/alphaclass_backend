@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.UserService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -35,7 +36,7 @@ public class UserController {
     public JSONResult register(@RequestBody User user){
         Map<String,Object> result = service.register(user);
         if (result==null) {
-            return JSONResult.failWithMsg("401","用户名已被注册");
+            return JSONResult.failWithMsg(Constants.CODE_401,"用户名已被注册");
         }else{
             return JSONResult.successWithData(result);
         }
@@ -54,7 +55,7 @@ public class UserController {
             result.put("token", token);
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg("401","认证失败");
+            return JSONResult.failWithMsg(Constants.CODE_401,"认证失败");
         }
     }
 
@@ -66,10 +67,10 @@ public class UserController {
             if (result!=null) {
                 return JSONResult.successWithData(result);
             }else{
-                return JSONResult.failWithMsg("401","验证失败");
+                return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
             }
         }else{
-            return JSONResult.failWithMsg("401","验证失败");
+            return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
         }
     }
 
@@ -81,10 +82,10 @@ public class UserController {
             if (result!=null) {
                 return JSONResult.successWithData(result);
             }else{
-                return JSONResult.failWithMsg("401","验证失败");
+                return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
             }
         }else{
-            return JSONResult.failWithMsg("401","验证失败");
+            return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
         }
     }
     

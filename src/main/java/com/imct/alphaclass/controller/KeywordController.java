@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.KeywordService;
 
@@ -32,7 +33,7 @@ public class KeywordController {
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}",method = RequestMethod.DELETE)
     public JSONResult deleteKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword) {
         service.deleteKeywordById(owner, course, keyword);
-        return JSONResult.customWithStatus("204");
+        return JSONResult.customWithStatus(Constants.CODE_204);
     }
 
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}",method = RequestMethod.GET)

@@ -14,6 +14,7 @@ import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.CourseDAO;
 import com.imct.alphaclass.dao.KeywordDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
@@ -70,7 +71,7 @@ public class KeywordService {
         Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
         Keyword keyword = dao.getKeywordByCidAndName(course.getId(), keywordname);
         if (keyword == null) {
-            throw new ServiceException("404", "关键词不存在");
+            throw new ServiceException(Constants.CODE_404, "关键词不存在");
         }
         Map<String, Object> result = MapUtils.toMap(keyword);
         result.remove("cid");

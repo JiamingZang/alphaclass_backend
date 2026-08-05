@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.StudentCourseService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -39,7 +40,7 @@ public class StudentCourseController {
     public JSONResult getLoginUserCourses() {
         User user = TokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg("401", "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }
         return JSONResult.successWithData(service.getLoginUserCourses(user.getId()));
     }

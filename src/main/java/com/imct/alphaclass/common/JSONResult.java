@@ -35,27 +35,11 @@ public class JSONResult<T> extends ResponseEntity<String> {
         return status;
     }
 
-    // public static <T> JSONResult<T> success(T data) {
-    //     return new JSONResult("200", "成功", data);
-    // }
-
-    // public static <T> JSONResult<T> failed(T data) {
-    //     return new JSONResult("422", "失败", data);
-    // }
-
     public static <T> JSONResult failWithMsg(String code,String msg) {
         Map<String, Object> message = new HashMap<String, Object>();
         message.put("message", msg);
         return new JSONResult(code,message);
     }
-
-    // public static JSONResult successWithData(Map<String, Object> data) {
-    //     return new JSONResult("200", data);
-    // }
-
-    // public static JSONResult successWithData(List<Map<String, Object>> data) {
-    //     return new JSONResult("200", data);
-    // }
 
     public static <T> JSONResult successWithData(T data) {
         return new JSONResult("200", data);

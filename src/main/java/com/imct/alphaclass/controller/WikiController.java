@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 
 import okhttp3.OkHttpClient;
@@ -159,7 +160,7 @@ public class WikiController {
             return JSONResult.successWithData(results);
         } catch (IOException e) {
             e.printStackTrace();
-            return JSONResult.failWithMsg("400", e.toString());
+            return JSONResult.failWithMsg(Constants.CODE_400, e.toString());
         }
     }
 
@@ -190,7 +191,7 @@ public class WikiController {
             return JSONResult.successWithData(result);
         } catch (Exception e) {
             e.printStackTrace();
-            return JSONResult.failWithMsg("400", e.toString());
+            return JSONResult.failWithMsg(Constants.CODE_400, e.toString());
         }
     }
 }

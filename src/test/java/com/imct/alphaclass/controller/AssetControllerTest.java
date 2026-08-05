@@ -41,7 +41,7 @@ class AssetControllerTest {
     void getAllByUser_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/user/assets"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value(""));
+                .andExpect(jsonPath("$.message").value("无token"));
         verify(service, never()).getAllByUser(anyString(), anyInt(), anyInt(), any());
     }
 
