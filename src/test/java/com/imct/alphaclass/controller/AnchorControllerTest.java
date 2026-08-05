@@ -52,14 +52,6 @@ class AnchorControllerTest {
         return user;
     }
 
-    private User otherUser() {
-        User user = new User();
-        user.setId(2);
-        user.setUsername("bob");
-        user.setPassword("secret");
-        return user;
-    }
-
     private String buildToken() {
         // JwtInterceptor 会用 audience 中的 userId 查用户并验证签名
         when(userService.getById(1)).thenReturn(currentUser());
@@ -88,7 +80,7 @@ class AnchorControllerTest {
         result.put("id", "400");
         result.put("name", "anchor1");
         when(service.addAnchorByCourse(eq("alice"), eq("math"), anyMap())).thenReturn(result);
-        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
+        when(tokenUtils.requireOwner("alice")).thenReturn(currentUser());
 
         mockMvc.perform(post("/courses/alice/math/anchors")
                 .header("token", buildToken())
@@ -101,7 +93,7 @@ class AnchorControllerTest {
 
     @Test
     void addAnchorByCourse_notOwner_returns401() throws Exception {
-        when(tokenUtils.getCurrentUser()).thenReturn(otherUser());
+        when(tokenUtils.requireOwner("alice")).thenReturn(null);
 
         mockMvc.perform(post("/courses/alice/math/anchors")
                 .header("token", buildToken())
@@ -118,7 +110,7 @@ class AnchorControllerTest {
         result.put("id", "400");
         result.put("name", "renamed");
         when(service.modifyAnchorById(eq("alice"), eq("math"), eq(400), anyMap())).thenReturn(result);
-        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
+        when(tokenUtils.requireOwner("alice")).thenReturn(currentUser());
 
         mockMvc.perform(put("/courses/alice/math/anchors/400")
                 .header("token", buildToken())
@@ -130,7 +122,7 @@ class AnchorControllerTest {
 
     @Test
     void modifyAnchorByCourse_notOwner_returns401() throws Exception {
-        when(tokenUtils.getCurrentUser()).thenReturn(otherUser());
+        when(tokenUtils.requireOwner("alice")).thenReturn(null);
 
         mockMvc.perform(put("/courses/alice/math/anchors/400")
                 .header("token", buildToken())
@@ -144,7 +136,7 @@ class AnchorControllerTest {
     @Test
     void deleteAnchorByCourse_ownerOnly_success_returns204() throws Exception {
         when(service.deleteAnchorById("alice", "math", 400)).thenReturn(true);
-        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
+        when(tokenUtils.requireOwner("alice")).thenReturn(currentUser());
 
         mockMvc.perform(delete("/courses/alice/math/anchors/400").header("token", buildToken()))
                 .andExpect(status().isNoContent());
@@ -152,7 +144,7 @@ class AnchorControllerTest {
 
     @Test
     void deleteAnchorByCourse_notOwner_returns401() throws Exception {
-        when(tokenUtils.getCurrentUser()).thenReturn(otherUser());
+        when(tokenUtils.requireOwner("alice")).thenReturn(null);
 
         mockMvc.perform(delete("/courses/alice/math/anchors/400").header("token", buildToken()))
                 .andExpect(status().isUnauthorized())
@@ -163,7 +155,7 @@ class AnchorControllerTest {
     @Test
     void deleteAnchorByCourse_fail_returns404() throws Exception {
         when(service.deleteAnchorById("alice", "math", 400)).thenReturn(false);
-        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
+        when(tokenUtils.requireOwner("alice")).thenReturn(currentUser());
 
         mockMvc.perform(delete("/courses/alice/math/anchors/400").header("token", buildToken()))
                 .andExpect(status().isNotFound())

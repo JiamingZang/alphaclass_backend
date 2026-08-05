@@ -155,13 +155,17 @@ public class MediaService {
         return buildMediaResponse(media);
     }
 
-    /** 删除媒体：仅当媒体属于该关键词时删除（归属校验，防止越权） */
-    public void deleteMediaById(String coursename, String ownername, String keywordname, int media_id) {
+    /**
+     * 删除媒体：仅当媒体属于该关键词时删除（归属校验，防止越权），返回是否删除成功。
+     */
+    public boolean deleteMediaById(String coursename, String ownername, String keywordname, int media_id) {
         Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
         if (media != null && media.getKid() == keyword.getId()) {
             dao.deleteMediaById(media_id);
+            return dao.getMediaById(media_id) == null;
         }
+        return false;
     }
 
     /** 查询关键词下全部媒体（内部按 kid 查询，复用 getMediasByKid 统一组装） */
@@ -193,7 +197,8 @@ public class MediaService {
     }
 
     /**
-     * 修改媒体：主表字段未传时沿用旧值（部分更新语义）；
+     * 修改媒体：仅当媒体属于该关键词时生效（归属校验在更新前完成，防止越权改写）；
+     * 主表字段未传时沿用旧值（部分更新语义）；
      * media_model/media_translation/media_wiki 扩展数据有则更新、无则新增，
      * 并在类型切换时清理不再适用的旧扩展数据。
      */
@@ -202,6 +207,9 @@ public class MediaService {
             Map<String, Object> params) {
         Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media old_media = dao.getMediaById(media_id);
+        if (old_media == null || old_media.getKid() != keyword.getId()) {
+            return null;
+        }
         float color_r;
         float color_g;
         float color_b;
@@ -336,10 +344,7 @@ public class MediaService {
                 mediawikidao.addWikiinfo(temp_media_wiki);
             }
         }
-        if (media != null && media.getKid() == keyword.getId()) {
-            return buildMediaResponse(media);
-        }
-        return null;
+        return buildMediaResponse(media);
     }
 
     /** translation/wiki/assistant 类型无 asset 关联，assetid 置空 */

@@ -75,5 +75,16 @@ public final class MapUtils {
         return DATE_TIME.format(value);
     }
 
+    /**
+     * 解析时间字段：兼容 yyyy-MM-dd HH:mm:ss 与 Timestamp.toString() 的带毫秒格式
+     * （截断毫秒）；非法/空值返回 null，由调用方兜底（避免各 Service 重复 try-catch）。
+     */
+    public static LocalDateTime parseDateTime(String value) {
+        if (value == null || value.length() < 19) {
+            return null;
+        }
+        return LocalDateTime.parse(value.substring(0, 19), DATE_TIME);
+    }
+
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 }

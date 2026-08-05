@@ -50,13 +50,15 @@ public class MediaController {
         return JSONResult.successWithData(result);   
     }
 
-    /** 删除媒体（需登录，仅课程创建者可操作） */
+    /** 删除媒体（需登录，仅课程创建者可操作；媒体不存在或不属于该关键词时 404） */
     @RequestMapping(value = "/courses/{user}/{course}/{keyword}/medias/{media_id}",method = RequestMethod.DELETE)
     public JSONResult deleteMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
         if (tokenUtils.requireOwner(user) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
-        service.deleteMediaById(course, user, keyword, media_id);
+        if (!service.deleteMediaById(course, user, keyword, media_id)) {
+            return JSONResult.failWithMsg(Constants.CODE_404, "媒体不存在");
+        }
         return JSONResult.customWithStatus(Constants.CODE_204);
     }
 

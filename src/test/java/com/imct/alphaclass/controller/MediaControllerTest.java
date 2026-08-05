@@ -125,10 +125,21 @@ class MediaControllerTest {
 
     @Test
     void deleteMediaById_returns204() throws Exception {
+        when(service.deleteMediaById("math", "alice", "k1", 200)).thenReturn(true);
         when(tokenUtils.requireOwner("alice")).thenReturn(owner());
         mockMvc.perform(delete("/courses/alice/math/k1/medias/200").header("token", buildToken()))
                 .andExpect(status().isNoContent());
         verify(service).deleteMediaById("math", "alice", "k1", 200);
+    }
+
+    @Test
+    void deleteMediaById_notFound_returns404() throws Exception {
+        when(service.deleteMediaById("math", "alice", "k1", 999)).thenReturn(false);
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
+
+        mockMvc.perform(delete("/courses/alice/math/k1/medias/999").header("token", buildToken()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("媒体不存在"));
     }
 
     @Test

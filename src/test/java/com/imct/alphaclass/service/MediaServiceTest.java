@@ -532,10 +532,11 @@ class MediaServiceTest {
     @Test
     void deleteMediaById_belongsToKeyword_deletes() {
         Media media = buildMedia(200, "model");
-        when(dao.getMediaById(200)).thenReturn(media);
+        when(dao.getMediaById(200)).thenReturn(media, null);
 
-        service.deleteMediaById("math", "alice", "k1", 200);
+        boolean deleted = service.deleteMediaById("math", "alice", "k1", 200);
 
+        assertTrue(deleted);
         verify(dao).deleteMediaById(200);
     }
 
@@ -545,9 +546,46 @@ class MediaServiceTest {
         media.setKid(999);
         when(dao.getMediaById(200)).thenReturn(media);
 
-        service.deleteMediaById("math", "alice", "k1", 200);
+        boolean deleted = service.deleteMediaById("math", "alice", "k1", 200);
 
+        assertFalse(deleted);
         verify(dao, never()).deleteMediaById(anyInt());
+    }
+
+    @Test
+    void deleteMediaById_mediaNotFound_returnsFalse() {
+        when(dao.getMediaById(999)).thenReturn(null);
+
+        boolean deleted = service.deleteMediaById("math", "alice", "k1", 999);
+
+        assertFalse(deleted);
+        verify(dao, never()).deleteMediaById(anyInt());
+    }
+
+    @Test
+    void modifyMediaById_mediaNotFound_returnsNullWithoutUpdate() {
+        when(dao.getMediaById(999)).thenReturn(null);
+
+        Map<String, Object> result = service.modifyMediaById("math", "alice", "k1", 999, new HashMap<>());
+
+        assertNull(result);
+        verify(dao, never()).updateMediaById(anyString(), anyString(), any(), anyInt(), anyString(), anyFloat(),
+                anyFloat(), anyFloat(), anyInt());
+    }
+
+    @Test
+    void modifyMediaById_notBelongsToKeyword_returnsNullWithoutUpdate() {
+        Media oldMedia = buildMedia(200, "model");
+        oldMedia.setKid(999);
+        when(dao.getMediaById(200)).thenReturn(oldMedia);
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", "hijack");
+        Map<String, Object> result = service.modifyMediaById("math", "alice", "k1", 200, params);
+
+        assertNull(result);
+        verify(dao, never()).updateMediaById(anyString(), anyString(), any(), anyInt(), anyString(), anyFloat(),
+                anyFloat(), anyFloat(), anyInt());
     }
 
     @Test

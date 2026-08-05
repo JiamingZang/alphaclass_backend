@@ -1,6 +1,5 @@
 package com.imct.alphaclass.service;
 
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -12,6 +11,7 @@ import com.imct.alphaclass.common.AiConstants;
 import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.ServiceDAO;
 import com.imct.alphaclass.exception.ServiceException;
+import com.imct.alphaclass.utils.MapUtils;
 
 /**
  * AI 生成每日限额校验：模型生成与视频生成共用同一统计口径
@@ -27,8 +27,10 @@ public class AiUsageGuard {
     public void checkExceedGenerationCount(int userId) {
         long finalCount = servicedao.getAllVideoResults().stream()
                 .filter(r -> r.getUser_id() == userId)
-                .filter(r -> Timestamp.valueOf(LocalDateTime.parse(r.getCreated_at()))
-                        .toLocalDateTime().toLocalDate().isEqual(LocalDate.now()))
+                .filter(r -> {
+                    LocalDateTime createdAt = MapUtils.parseDateTime(r.getCreated_at());
+                    return createdAt != null && createdAt.toLocalDate().isEqual(LocalDate.now());
+                })
                 .count();
         if (finalCount > AiConstants.DAILY_GENERATION_LIMIT) {
             throw new ServiceException(Constants.CODE_403, AiConstants.EXCEED_LIMIT_MESSAGE);
