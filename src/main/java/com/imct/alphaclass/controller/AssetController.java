@@ -35,6 +35,9 @@ public class AssetController {
         if (user == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }
+        if (page < 1 || perpage < 1) {
+            return JSONResult.failWithMsg(Constants.CODE_400, "分页参数不合法");
+        }
         return JSONResult.successWithData(service.getAllByUser(user.getUsername(), page, perpage, type));
     }
 
