@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.User;
@@ -35,6 +34,8 @@ class StudentCourseServiceTest {
     private CourseDAO coursedao;
     @Mock
     private UserDAO userdao;
+    @Mock
+    private AccessService access;
 
     @InjectMocks
     private StudentCourseService service;
@@ -50,10 +51,8 @@ class StudentCourseServiceTest {
         course = new Course();
         course.setId(10);
         course.setName("math");
-        // lenient：getLoginUserCourses 不经过这两步查询
-        lenient().when(userdao.getByUsername("alice")).thenReturn(owner);
-        lenient().when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
-        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
+        // lenient：getLoginUserCourses 不经过课程归属校验
+        lenient().when(access.requireCourse("alice", "math")).thenReturn(course);
     }
 
     @Test
@@ -72,6 +71,11 @@ class StudentCourseServiceTest {
         student.setPassword("secret");
         student.setName("Bob");
         when(userdao.getById(2)).thenReturn(student);
+        Map<String, Object> bobMap = new HashMap<>();
+        bobMap.put("id", "2");
+        bobMap.put("username", "bob");
+        bobMap.put("url", "http://localhost:8080/v2/users/bob");
+        when(access.toUserMap(student)).thenReturn(bobMap);
 
         List<Map<String, Object>> result = service.getAllStudentsByCourse("alice", "math");
 
@@ -91,8 +95,8 @@ class StudentCourseServiceTest {
         User carol = new User();
         carol.setId(3);
         carol.setUsername("carol");
-        when(userdao.getByUsername("bob")).thenReturn(bob);
-        when(userdao.getByUsername("carol")).thenReturn(carol);
+        when(access.requireUser("bob")).thenReturn(bob);
+        when(access.requireUser("carol")).thenReturn(carol);
 
         List<String> students = new ArrayList<>();
         students.add("bob");
@@ -109,7 +113,7 @@ class StudentCourseServiceTest {
         User bob = new User();
         bob.setId(2);
         bob.setUsername("bob");
-        when(userdao.getByUsername("bob")).thenReturn(bob);
+        when(access.requireUser("bob")).thenReturn(bob);
 
         List<String> students = new ArrayList<>();
         students.add("bob");
@@ -145,6 +149,11 @@ class StudentCourseServiceTest {
         ownerUser.setName("Alice");
         ownerUser.setPassword("secret");
         when(userdao.getById(1)).thenReturn(ownerUser);
+        Map<String, Object> ownerMap = new HashMap<>();
+        ownerMap.put("id", "1");
+        ownerMap.put("username", "alice");
+        when(access.toUserMap(ownerUser)).thenReturn(ownerMap);
+        when(access.courseUrl("alice", "math")).thenReturn("http://localhost:8080/v2/alice/math");
 
         List<Map<String, Object>> result = service.getLoginUserCourses(2);
 

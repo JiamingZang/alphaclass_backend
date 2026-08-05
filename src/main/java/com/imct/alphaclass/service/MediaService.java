@@ -14,38 +14,35 @@ import org.springframework.transaction.annotation.Transactional;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.Animation;
-import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.Keyword;
 import com.imct.alphaclass.bean.Media;
 import com.imct.alphaclass.bean.MediaModel;
 import com.imct.alphaclass.bean.MediaTranslation;
 import com.imct.alphaclass.bean.MediaWiki;
 import com.imct.alphaclass.bean.Part;
-import com.imct.alphaclass.bean.User;
-import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.AnchorDAO;
 import com.imct.alphaclass.dao.AnimationDAO;
 import com.imct.alphaclass.dao.AssetDAO;
-import com.imct.alphaclass.dao.CourseDAO;
-import com.imct.alphaclass.dao.KeywordDAO;
 import com.imct.alphaclass.dao.MediaDAO;
 import com.imct.alphaclass.dao.MediaModelDAO;
 import com.imct.alphaclass.dao.MediaTranslationDAO;
 import com.imct.alphaclass.dao.MediaWikiDAO;
 import com.imct.alphaclass.dao.PartDAO;
-import com.imct.alphaclass.dao.UserDAO;
-import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 @RequiredArgsConstructor
 public class MediaService {
+    /** 媒体类型常量（与数据库 type 字段取值一致） */
+    private static final String TYPE_MODEL = "model";
+    private static final String TYPE_TRANSLATION = "translation";
+    private static final String TYPE_WIKI = "wiki";
+    private static final String TYPE_ASSISTANT = "assistant";
+
     private final MediaDAO dao;
-    private final UserDAO userdao;
-    private final CourseDAO coursedao;
+    private final AccessService access;
     private final AnchorDAO anchordao;
     private final AssetDAO assetdao;
-    private final KeywordDAO keyworddao;
     private final MediaModelDAO mediamodeldao;
     private final AnimationDAO animationdao;
     private final PartDAO partdao;
@@ -59,7 +56,7 @@ public class MediaService {
     @Transactional
     public Map<String, Object> addMediaByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
-        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
+        Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media media = new Media();
         media.setName(params.get("name").toString());
         media.setType(params.get("type").toString());
@@ -121,7 +118,7 @@ public class MediaService {
     @Transactional
     public Map<String, Object> addMediaTranslationOrWikiByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
-        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
+        Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media media = new Media();
         media.setName(params.get("name").toString());
         media.setType(params.get("type").toString());
@@ -135,7 +132,7 @@ public class MediaService {
         dao.addMedia(media);
         media = dao.getMediaById(media.getId());
         // 按媒体类型写入专属扩展表（translation/wiki 二选一）
-        if (media.getType().equals("translation")) {
+        if (TYPE_TRANSLATION.equals(media.getType())) {
             Map<String, Object> media_translation = (Map<String, Object>) params.get("media_translation");
             MediaTranslation media_translation_obj = new MediaTranslation();
             media_translation_obj.setId(media.getId());
@@ -146,7 +143,7 @@ public class MediaService {
             media_translation_obj.setSentence_CN(media_translation.get("sentence_CN").toString());
             media_translation_obj.setSentence_EN(media_translation.get("sentence_EN").toString());
             mediatranslationdao.addMediaTranslation(media_translation_obj);
-        } else if (media.getType().equals("wiki")) {
+        } else if (TYPE_WIKI.equals(media.getType())) {
             Map<String, Object> media_wiki = (Map<String, Object>) params.get("media_wiki");
             MediaWiki media_wiki_obj = new MediaWiki();
             media_wiki_obj.setId(media.getId());
@@ -160,7 +157,7 @@ public class MediaService {
 
     /** 删除媒体：仅当媒体属于该关键词时删除（归属校验，防止越权） */
     public void deleteMediaById(String coursename, String ownername, String keywordname, int media_id) {
-        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
+        Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
         if (media != null && media.getKid() == keyword.getId()) {
             dao.deleteMediaById(media_id);
@@ -169,7 +166,7 @@ public class MediaService {
 
     /** 查询关键词下全部媒体（内部按 kid 查询，复用 getMediasByKid 统一组装） */
     public List<Map<String, Object>> getAllMediasByKeyword(String ownername, String coursename, String keywordname) {
-        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
+        Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         return getMediasByKid(keyword.getId());
     }
 
@@ -187,7 +184,7 @@ public class MediaService {
 
     /** 查询单个媒体：仅当媒体属于该关键词时返回组装响应 */
     public Map<String, Object> getMediaById(String coursename, String ownername, String keywordname, int media_id) {
-        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
+        Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
         if (media != null && media.getKid() == keyword.getId()) {
             return buildMediaResponse(media);
@@ -203,7 +200,7 @@ public class MediaService {
     @Transactional
     public Map<String, Object> modifyMediaById(String coursename, String ownername, String keywordname, int media_id,
             Map<String, Object> params) {
-        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
+        Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media old_media = dao.getMediaById(media_id);
         float color_r;
         float color_g;
@@ -219,11 +216,11 @@ public class MediaService {
             color_b = old_media.getColor_b();
         }
         // 从 translation/wiki 切换到其他类型时，清理旧的扩展数据
-        if ((old_media.getType().equals("translation")
-                || old_media.getType().equals("wiki"))
+        if ((TYPE_TRANSLATION.equals(old_media.getType())
+                || TYPE_WIKI.equals(old_media.getType()))
                 && params.get("type") != null
-                && !(params.get("type").equals("translation")
-                        || params.get("type").equals("wiki"))) {
+                && !(TYPE_TRANSLATION.equals(params.get("type"))
+                        || TYPE_WIKI.equals(params.get("type")))) {
             if (mediawikidao.getWikiinfoById(media_id) != null) {
                 mediawikidao.deleteWikiinfoById(media_id);
             }
@@ -347,7 +344,7 @@ public class MediaService {
 
     /** translation/wiki/assistant 类型无 asset 关联，assetid 置空 */
     private boolean typeHasNoAsset(Object type) {
-        return type != null && (type.equals("translation") || type.equals("wiki") || type.equals("assistant"));
+        return type != null && (TYPE_TRANSLATION.equals(type) || TYPE_WIKI.equals(type) || TYPE_ASSISTANT.equals(type));
     }
 
     /** 将 part 请求参数转换为 Part 实体（addMediaByKeyword 与 modifyMediaById 共用） */
@@ -374,29 +371,6 @@ public class MediaService {
         part.setTargetEuler_y(Float.valueOf(targeteuler.get("euler_y").toString()));
         part.setTargetEuler_z(Float.valueOf(targeteuler.get("euler_z").toString()));
         return part;
-    }
-
-    /** user/course/keyword 任一不存在时抛 404（替代链式 NPE） */
-    private Course requireCourse(String ownername, String coursename) {
-        User user = userdao.getByUsername(ownername);
-        if (user == null) {
-            throw new ServiceException(Constants.CODE_404, "用户不存在");
-        }
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        if (course == null) {
-            throw new ServiceException(Constants.CODE_404, "课程不存在");
-        }
-        return course;
-    }
-
-    /** 关键词不存在时抛 404（user/course 链路由 requireCourse 兜底） */
-    private Keyword requireKeyword(String ownername, String coursename, String keywordname) {
-        Course course = requireCourse(ownername, coursename);
-        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
-        if (keyword == null) {
-            throw new ServiceException(Constants.CODE_404, "关键词不存在");
-        }
-        return keyword;
     }
 
     /**
@@ -447,7 +421,7 @@ public class MediaService {
     private void appendTypeSpecific(Map<String, Object> ac) {
         String type = ac.get("type").toString();
         int mediaId = Integer.valueOf(ac.get("id").toString());
-        if (type.equals("model")) {
+        if (TYPE_MODEL.equals(type)) {
             MediaModel mediaModel = mediamodeldao.getModelinfoById(mediaId);
             if (mediaModel != null) {
                 Map<String, Object> scale = new HashMap<String, Object>();
@@ -462,14 +436,14 @@ public class MediaService {
                 ac.put("animations", animationsList);
                 ac.put("parts", buildParts(partdao.getAllByMediaID(mediaModel.getId())));
             }
-        } else if (type.equals("translation")) {
+        } else if (TYPE_TRANSLATION.equals(type)) {
             MediaTranslation mediaTranslation = mediatranslationdao.getMediaTranslationById(mediaId);
             if (mediaTranslation != null) {
                 Map<String, Object> res = MapUtils.toMap(mediaTranslation);
                 res.remove("id");
                 ac.put("media_translation", res);
             }
-        } else if (type.equals("wiki")) {
+        } else if (TYPE_WIKI.equals(type)) {
             MediaWiki mediaWiki = mediawikidao.getWikiinfoById(mediaId);
             if (mediaWiki != null) {
                 Map<String, Object> res = MapUtils.toMap(mediaWiki);

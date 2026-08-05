@@ -22,7 +22,6 @@ import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.AnimationDAO;
 import com.imct.alphaclass.dao.AssetDAO;
 import com.imct.alphaclass.dao.MediaModelDAO;
-import com.imct.alphaclass.dao.UserDAO;
 
 /**
  * AssetService 行为基线测试：分页/类型过滤/软删除过滤/响应组装。
@@ -33,7 +32,7 @@ class AssetServiceTest {
     @Mock
     private AssetDAO dao;
     @Mock
-    private UserDAO userdao;
+    private AccessService access;
     @Mock
     private MediaModelDAO modelinfodao;
     @Mock
@@ -49,8 +48,8 @@ class AssetServiceTest {
         user = new User();
         user.setId(1);
         user.setUsername("alice");
-        // lenient：getAssetById/deleteById/modifyById 不经过 getByUsername
-        lenient().when(userdao.getByUsername("alice")).thenReturn(user);
+        // lenient：getAssetById/deleteById/modifyById 不经过 requireUser
+        lenient().when(access.requireUser("alice")).thenReturn(user);
     }
 
     private Map<String, Object> buildAssetRow(int id, String type, String deletedAt) {

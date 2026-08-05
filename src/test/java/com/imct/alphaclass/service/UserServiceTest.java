@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.UserDAO;
@@ -28,6 +27,8 @@ class UserServiceTest {
 
     @Mock
     private UserDAO dao;
+    @Mock
+    private AccessService access;
 
     @InjectMocks
     private UserService service;
@@ -44,7 +45,10 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
+        lenient().when(access.userUrl(anyString())).thenAnswer(invocation ->
+                "http://localhost:8080/v2/users/" + invocation.getArgument(0));
+        lenient().when(access.userCoursesUrl(anyString())).thenAnswer(invocation ->
+                "http://localhost:8080/v2/users/" + invocation.getArgument(0) + "/courses");
     }
 
     @Test

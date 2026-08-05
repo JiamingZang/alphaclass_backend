@@ -28,14 +28,11 @@ import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.AnchorDAO;
 import com.imct.alphaclass.dao.AnimationDAO;
 import com.imct.alphaclass.dao.AssetDAO;
-import com.imct.alphaclass.dao.CourseDAO;
-import com.imct.alphaclass.dao.KeywordDAO;
 import com.imct.alphaclass.dao.MediaDAO;
 import com.imct.alphaclass.dao.MediaModelDAO;
 import com.imct.alphaclass.dao.MediaTranslationDAO;
 import com.imct.alphaclass.dao.MediaWikiDAO;
 import com.imct.alphaclass.dao.PartDAO;
-import com.imct.alphaclass.dao.UserDAO;
 
 /**
  * MediaService 行为基线测试。
@@ -48,15 +45,11 @@ class MediaServiceTest {
     @Mock
     private MediaDAO dao;
     @Mock
-    private UserDAO userdao;
-    @Mock
-    private CourseDAO coursedao;
+    private AccessService access;
     @Mock
     private AnchorDAO anchordao;
     @Mock
     private AssetDAO assetdao;
-    @Mock
-    private KeywordDAO keyworddao;
     @Mock
     private MediaModelDAO mediamodeldao;
     @Mock
@@ -90,9 +83,7 @@ class MediaServiceTest {
         keyword.setId(100);
         keyword.setKeyword("k1");
 
-        when(userdao.getByUsername("alice")).thenReturn(user);
-        when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
-        when(keyworddao.getKeywordByCidAndName(10, "k1")).thenReturn(keyword);
+        when(access.requireKeyword("alice", "math", "k1")).thenReturn(keyword);
     }
 
     private Media buildMedia(int id, String type) {

@@ -15,14 +15,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.Keyword;
-import com.imct.alphaclass.bean.User;
-import com.imct.alphaclass.dao.CourseDAO;
 import com.imct.alphaclass.dao.KeywordDAO;
-import com.imct.alphaclass.dao.UserDAO;
 import com.imct.alphaclass.exception.ServiceException;
 
 /**
@@ -35,32 +31,24 @@ class KeywordServiceTest {
     @Mock
     private KeywordDAO dao;
     @Mock
-    private UserDAO userdao;
-    @Mock
-    private CourseDAO coursedao;
+    private AccessService access;
     @Mock
     private MediaService mediaservice;
 
     @InjectMocks
     private KeywordService service;
 
-    private User user;
     private Course course;
 
     @BeforeEach
     void setUp() {
-        user = new User();
-        user.setId(1);
-        user.setUsername("alice");
-
         course = new Course();
         course.setId(10);
         course.setName("math");
 
         // lenient：守卫类测试不经过完整链路
-        lenient().when(userdao.getByUsername("alice")).thenReturn(user);
-        lenient().when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
-        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
+        lenient().when(access.requireCourse("alice", "math")).thenReturn(course);
+        lenient().when(access.requireKeyword("alice", "math", "k1")).thenReturn(buildKeyword(100, "k1"));
     }
 
     private Keyword buildKeyword(int id, String name) {
@@ -89,6 +77,7 @@ class KeywordServiceTest {
             return null;
         }).when(dao).addKeyword(any(Keyword.class));
         when(dao.getKeywordById(101)).thenReturn(buildKeyword(101, "k2"));
+        when(access.keywordUrl("alice", "math", "k2")).thenReturn("http://localhost:8080/v2/alice/math/k2");
 
         Map<String, Object> result = service.addKeywordByCourse("alice", "math", new HashMap<String, Object>() {
             {
@@ -112,7 +101,7 @@ class KeywordServiceTest {
 
     @Test
     void getKeywordByCourse_returnsKeywordWithMedias() {
-        when(dao.getKeywordByCidAndName(10, "k1")).thenReturn(buildKeyword(100, "k1"));
+        when(access.requireKeyword("alice", "math", "k1")).thenReturn(buildKeyword(100, "k1"));
         List<Map<String, Object>> mediaList = buildMediaList();
         when(mediaservice.getMediasByKid(100)).thenReturn(mediaList);
 
@@ -129,7 +118,8 @@ class KeywordServiceTest {
 
     @Test
     void getKeywordByCourse_keywordNotFound_throws404() {
-        when(dao.getKeywordByCidAndName(10, "missing")).thenReturn(null);
+        when(access.requireKeyword("alice", "math", "missing"))
+                .thenThrow(new ServiceException("404", "关键词不存在"));
 
         ServiceException ex = assertThrows(ServiceException.class,
                 () -> service.getKeywordByCourse("alice", "math", "missing"));
@@ -138,7 +128,8 @@ class KeywordServiceTest {
 
     @Test
     void getKeywordByCourse_userNotFound_throws404() {
-        when(userdao.getByUsername("ghost")).thenReturn(null);
+        when(access.requireKeyword("ghost", "math", "k1"))
+                .thenThrow(new ServiceException("404", "用户不存在"));
 
         ServiceException ex = assertThrows(ServiceException.class,
                 () -> service.getKeywordByCourse("ghost", "math", "k1"));
@@ -148,7 +139,8 @@ class KeywordServiceTest {
 
     @Test
     void getKeywordByCourse_courseNotFound_throws404() {
-        when(coursedao.getCourseByUidAndName(1, "nope")).thenReturn(null);
+        when(access.requireKeyword("alice", "nope", "k1"))
+                .thenThrow(new ServiceException("404", "课程不存在"));
 
         ServiceException ex = assertThrows(ServiceException.class,
                 () -> service.getKeywordByCourse("alice", "nope", "k1"));
@@ -181,7 +173,7 @@ class KeywordServiceTest {
 
     @Test
     void modifyKeywordByCourse_renamesKeyword() {
-        when(dao.getKeywordByCidAndName(10, "k1")).thenReturn(buildKeyword(100, "k1"));
+        when(access.requireKeyword("alice", "math", "k1")).thenReturn(buildKeyword(100, "k1"));
         when(dao.updateKeywordByCidAndName(eq("k2"), eq(10), eq("k1"))).thenReturn(1);
         when(dao.getKeywordByCidAndName(10, "k2")).thenReturn(buildKeyword(100, "k2"));
         when(mediaservice.getMediasByKid(100)).thenReturn(buildMediaList());

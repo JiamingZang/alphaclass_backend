@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.imct.alphaclass.bean.User;
@@ -18,9 +17,7 @@ import com.imct.alphaclass.utils.MapUtils;
 @RequiredArgsConstructor
 public class UserService {
     private final UserDAO dao;
-
-    @Value("${app.base-url:http://localhost:8080/v2}")
-    private String baseUrl;
+    private final AccessService access;
 
     /** 查询全部用户（id 转字符串、url/courses_url 填充） */
     public List<Map<String, Object>> findAll() {
@@ -94,8 +91,8 @@ public class UserService {
     /** 填充 id 字符串化及 url/courses_url 链接（baseUrl 可配置） */
     private Map<String, Object> fillUserUrls(Map<String, Object> result) {
         result.put("id", result.get("id").toString());
-        result.put("url", baseUrl + "/users/" + result.get("username"));
-        result.put("courses_url", baseUrl + "/users/" + result.get("username") + "/courses");
+        result.put("url", access.userUrl(result.get("username").toString()));
+        result.put("courses_url", access.userCoursesUrl(result.get("username").toString()));
         return result;
     }
 }

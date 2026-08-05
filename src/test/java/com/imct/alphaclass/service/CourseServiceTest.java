@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.User;
@@ -33,6 +32,8 @@ class CourseServiceTest {
     private CourseDAO dao;
     @Mock
     private UserDAO userdao;
+    @Mock
+    private AccessService access;
 
     @InjectMocks
     private CourseService service;
@@ -45,9 +46,16 @@ class CourseServiceTest {
         user.setId(1);
         user.setUsername("alice");
         user.setName("Alice");
-        // lenient：getById 系列测试不经过 getByUsername
-        lenient().when(userdao.getByUsername("alice")).thenReturn(user);
-        ReflectionTestUtils.setField(service, "baseUrl", "http://localhost:8080/v2");
+        // lenient：getById 系列测试不经过 getByUsername/URL 组装
+        lenient().when(access.requireUser("alice")).thenReturn(user);
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("id", "1");
+        userMap.put("username", "alice");
+        userMap.put("url", "http://localhost:8080/v2/users/alice");
+        lenient().when(access.toUserMap(any(User.class))).thenReturn(userMap);
+        lenient().when(access.keywordsUrl("alice", "math")).thenReturn("http://localhost:8080/v2/courses/alice/math/keywords");
+        lenient().when(access.anchorsUrl("alice", "math")).thenReturn("http://localhost:8080/v2/courses/alice/math/anchors");
+        lenient().when(access.courseDetailUrl("alice", "math")).thenReturn("http://localhost:8080/v2/courses/alice/math");
     }
 
     private Course buildCourse() {

@@ -18,10 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.imct.alphaclass.bean.Anchor;
 import com.imct.alphaclass.bean.Course;
-import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.AnchorDAO;
-import com.imct.alphaclass.dao.CourseDAO;
-import com.imct.alphaclass.dao.UserDAO;
 
 /**
  * AnchorService 行为基线测试：pos/euler 嵌套响应组装与归属校验。
@@ -32,26 +29,19 @@ class AnchorServiceTest {
     @Mock
     private AnchorDAO dao;
     @Mock
-    private CourseDAO coursedao;
-    @Mock
-    private UserDAO userdao;
+    private AccessService access;
 
     @InjectMocks
     private AnchorService service;
 
-    private User user;
     private Course course;
 
     @BeforeEach
     void setUp() {
-        user = new User();
-        user.setId(1);
-        user.setUsername("alice");
         course = new Course();
         course.setId(10);
         course.setName("math");
-        when(userdao.getByUsername("alice")).thenReturn(user);
-        when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
+        when(access.requireCourse("alice", "math")).thenReturn(course);
     }
 
     private Map<String, Object> buildAnchorRow() {

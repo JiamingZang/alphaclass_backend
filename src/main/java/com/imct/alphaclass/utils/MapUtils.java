@@ -2,6 +2,8 @@ package com.imct.alphaclass.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,4 +63,11 @@ public final class MapUtils {
             throw new IllegalStateException("UTF-8 not supported", e);
         }
     }
+
+    /** 时间字段统一格式化（各 Service 响应组装共用，替代重复的 DateTimeFormatter 定义） */
+    public static String formatDateTime(LocalDateTime value) {
+        return DATE_TIME.format(value);
+    }
+
+    private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 }
