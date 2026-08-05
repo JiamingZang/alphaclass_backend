@@ -118,12 +118,19 @@ class AssetServiceTest {
     void getAssetById_returnsAssetWithoutUid() {
         when(dao.getAssetById(300)).thenReturn(buildAsset());
 
-        Map<String, Object> result = service.getAssetById(300);
+        Map<String, Object> result = service.getAssetById(1, 300);
 
         assertNotNull(result);
         assertEquals("300", result.get("id"));
         assertEquals("asset1", result.get("name"));
         assertNull(result.get("uid"));
+    }
+
+    @Test
+    void getAssetById_notOwner_returnsNull() {
+        when(dao.getAssetById(300)).thenReturn(buildAsset());
+
+        assertNull(service.getAssetById(2, 300));
     }
 
     @Test

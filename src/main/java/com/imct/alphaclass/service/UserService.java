@@ -38,9 +38,7 @@ public class UserService {
             return null;
         }
         dao.register(user);
-        Map<String, Object> result = toUserMap(user);
-        result.remove("password");
-        return result;
+        return toUserMap(user);
     }
 
     /** 注册参数校验：用户名/密码/角色必填，角色仅限 teacher/student */
@@ -59,10 +57,18 @@ public class UserService {
         return user == null ? null : toUserMap(user);
     }
 
-    /** 登录校验（用户名+密码）；认证失败时返回 null */
+    /**
+     * 登录校验（用户名+密码）；认证失败时返回 null。
+     * 响应不含明文密码，密码经 sign 键单独传出（仅用于 Controller 签发 token）。
+     */
     public Map<String, Object> login(User user) {
         User resultUser = dao.login(user);
-        return resultUser == null ? null : toUserMap(resultUser);
+        if (resultUser == null) {
+            return null;
+        }
+        Map<String, Object> result = toUserMap(resultUser);
+        result.put("sign", resultUser.getPassword());
+        return result;
     }
 
     /** 按 id 查询用户实体（供 JwtInterceptor 等内部使用，不组装响应） */
@@ -96,14 +102,18 @@ public class UserService {
         return result;
     }
 
-    /** 用户响应公共组装：id 转字符串 + url/courses_url 填充（register/login/查询共用） */
+    /** 用户响应公共组装：id 转字符串 + url/courses_url 填充 + 移除明文密码（所有用户响应统一，杜绝泄露） */
     private Map<String, Object> toUserMap(User user) {
-        return fillUserUrls(MapUtils.toMap(user));
+        Map<String, Object> result = fillUserUrls(MapUtils.toMap(user));
+        result.remove("password");
+        return result;
     }
 
     /** 用户列表组装：DAO 直接返回 Map（findAll 专用，复制一份避免污染 DAO 对象） */
     private Map<String, Object> toUserMap(Map<String, Object> userMap) {
-        return fillUserUrls(new HashMap<String, Object>(userMap));
+        Map<String, Object> result = fillUserUrls(new HashMap<String, Object>(userMap));
+        result.remove("password");
+        return result;
     }
 
     /** 填充 id 字符串化及 url/courses_url 链接（baseUrl 可配置） */

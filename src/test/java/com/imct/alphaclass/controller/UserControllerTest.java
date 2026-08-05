@@ -95,7 +95,7 @@ class UserControllerTest {
         Map<String, Object> u = new HashMap<>();
         u.put("id", "1");
         u.put("username", "alice");
-        u.put("password", "secret");
+        u.put("sign", "secret");
         when(service.login(any(User.class))).thenReturn(u);
         when(tokenUtils.getToken(anyString(), anyString())).thenReturn("fake-jwt-token");
 

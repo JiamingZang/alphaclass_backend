@@ -134,7 +134,7 @@ class UserServiceTest {
     }
 
     @Test
-    void login_success_returnsUserWithPassword() {
+    void login_success_returnsUserWithSignKey() {
         when(dao.login(any(User.class))).thenReturn(buildUser());
 
         User login = new User();
@@ -146,7 +146,8 @@ class UserServiceTest {
 
         assertNotNull(result);
         assertEquals("1", result.get("id"));
-        assertEquals("secret", result.get("password"));
+        assertEquals("secret", result.get("sign"));
+        assertNull(result.get("password"));
         assertEquals("http://localhost:8080/v2/users/alice", result.get("url"));
     }
 

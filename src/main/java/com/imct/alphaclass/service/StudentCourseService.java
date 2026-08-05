@@ -33,17 +33,20 @@ public class StudentCourseService {
                 .collect(Collectors.toList());
     }
 
-    /** 按用户名批量添加学生（循环内逐个校验用户存在，整体事务回滚） */
+    /** 按用户名批量添加学生（循环内逐个校验用户存在且未选课，整体事务回滚） */
     @Transactional
     public void addStudentsByUsername(List<String> students,String ownername,String coursename){
         Course course = access.requireCourse(ownername, coursename);
         int courseid = course.getId();
         students.forEach(studentname -> {
             User stu = access.requireUser(studentname);
-            StudentCourse sc = new StudentCourse();
-            sc.setSid(stu.getId());
-            sc.setCid(courseid);
-            dao.addStudentCourse(sc);
+            // 幂等添加：已在课程中的学生跳过，避免重复插入
+            if (dao.getBySidAndCid(courseid, stu.getId()) == null) {
+                StudentCourse sc = new StudentCourse();
+                sc.setSid(stu.getId());
+                sc.setCid(courseid);
+                dao.addStudentCourse(sc);
+            }
         });
     }
 

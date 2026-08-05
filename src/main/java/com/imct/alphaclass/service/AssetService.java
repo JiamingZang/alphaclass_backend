@@ -50,9 +50,13 @@ public class AssetService {
         return result;
     }
 
-    /** 查询单个资产（uid 移除、id 转字符串）；不存在时返回 null */
-    public Map<String, Object> getAssetById(int id) {
-        return toAssetMap(dao.getAssetById(id));
+    /** 查询单个资产（uid 移除、id 转字符串）；不存在或非本人资产时返回 null */
+    public Map<String, Object> getAssetById(int uid, int id) {
+        Asset asset = dao.getAssetById(id);
+        if (asset == null || asset.getUid() != uid) {
+            return null;
+        }
+        return toAssetMap(asset);
     }
 
     /** 新增资产：uid/时间戳由服务端填充，generated 未传时默认 false */

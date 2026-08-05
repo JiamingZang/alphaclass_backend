@@ -19,6 +19,9 @@ public interface StudentCourseDAO {
     @Select("select * from student_course where sid = #{sid}")
     public List<Map<String, Object>> getAllBySid(int sid);
 
+    @Select("select * from student_course where cid = #{cid} and sid = #{sid}")
+    public StudentCourse getBySidAndCid(int cid, int sid);
+
     @Insert("Insert into student_course (cid, sid) values(#{cid},#{sid})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     public void addStudentCourse(StudentCourse studentCourse);

@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -83,7 +84,11 @@ public final class MapUtils {
         if (value == null || value.length() < 19) {
             return null;
         }
-        return LocalDateTime.parse(value.substring(0, 19), DATE_TIME);
+        try {
+            return LocalDateTime.parse(value.substring(0, 19), DATE_TIME);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

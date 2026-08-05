@@ -36,7 +36,11 @@ public class StudentCourseController {
         if (tokenUtils.requireOwner(owner) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
-        service.addStudentsByUsername((List<String>)params.get("students"), owner, course);
+        List<String> students = studentList(params);
+        if (students == null) {
+            return JSONResult.failWithMsg(Constants.CODE_400, "students 参数不合法");
+        }
+        service.addStudentsByUsername(students, owner, course);
         return JSONResult.customWithStatus(Constants.CODE_204);
     }
 
@@ -46,8 +50,22 @@ public class StudentCourseController {
         if (tokenUtils.requireOwner(owner) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
-        service.deleteStudentsByUsername((List<String>)params.get("students"), owner, course);
+        List<String> students = studentList(params);
+        if (students == null) {
+            return JSONResult.failWithMsg(Constants.CODE_400, "students 参数不合法");
+        }
+        service.deleteStudentsByUsername(students, owner, course);
         return JSONResult.customWithStatus(Constants.CODE_204);
+    }
+
+    /** 解析 students 列表参数：缺失/非列表时返回 null（替代直接强转的 ClassCastException） */
+    @SuppressWarnings("unchecked")
+    private static List<String> studentList(Map<String, Object> params) {
+        Object students = params.get("students");
+        if (students instanceof List) {
+            return (List<String>) students;
+        }
+        return null;
     }
 
     @RequestMapping(value = "/user/register-courses",method = RequestMethod.GET)

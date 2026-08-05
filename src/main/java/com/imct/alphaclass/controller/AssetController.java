@@ -76,9 +76,14 @@ public class AssetController {
         }
     }
 
+    /** 查询单个资产（需登录，仅资产归属者可查看） */
     @RequestMapping(value = "/user/assets/{id}", method = RequestMethod.GET)
     public JSONResult getById(@PathVariable int id) {
-        Map<String, Object> result = service.getAssetById(id);
+        User user = tokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+        }
+        Map<String, Object> result = service.getAssetById(user.getId(), id);
         if (result != null) {
             return JSONResult.successWithData(result);
         } else {
