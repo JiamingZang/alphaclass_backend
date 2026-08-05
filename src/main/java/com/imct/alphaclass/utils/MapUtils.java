@@ -1,5 +1,7 @@
 package com.imct.alphaclass.utils;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,5 +51,14 @@ public final class MapUtils {
             return 0;
         }
         return Integer.parseInt(value.toString());
+    }
+
+    /** URL 编码（UTF-8 为标准字符集，理论不可达异常包装为 IllegalStateException） */
+    public static String urlEncode(String value) {
+        try {
+            return URLEncoder.encode(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("UTF-8 not supported", e);
+        }
     }
 }

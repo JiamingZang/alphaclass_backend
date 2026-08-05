@@ -23,6 +23,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.service.KeywordService;
 import com.imct.alphaclass.service.UserService;
+import com.imct.alphaclass.utils.TokenUtils;
 
 /**
  * KeywordController 路由与响应契约测试（MockMvc，不依赖数据库）。
@@ -39,6 +40,16 @@ class KeywordControllerTest {
     @MockBean
     private UserService userService;
 
+    @MockBean
+    private TokenUtils tokenUtils;
+
+    private User owner() {
+        User user = new User();
+        user.setId(1);
+        user.setUsername("alice");
+        user.setPassword("secret");
+        return user;
+    }
     private String buildToken() {
         User user = new User();
         user.setId(1);
@@ -69,6 +80,7 @@ class KeywordControllerTest {
         result.put("id", "101");
         result.put("keyword", "k2");
         when(service.addKeywordByCourse(eq("alice"), eq("math"), anyMap())).thenReturn(result);
+        when(tokenUtils.getCurrentUser()).thenReturn(owner());
 
         mockMvc.perform(post("/courses/alice/math/keywords")
                 .header("token", buildToken())
@@ -96,6 +108,7 @@ class KeywordControllerTest {
         result.put("id", "100");
         result.put("keyword", "k2");
         when(service.modifyKeywordByCourse(eq("alice"), eq("math"), eq("k1"), anyMap())).thenReturn(result);
+        when(tokenUtils.getCurrentUser()).thenReturn(owner());
 
         mockMvc.perform(put("/courses/alice/math/k1")
                 .header("token", buildToken())
@@ -107,8 +120,26 @@ class KeywordControllerTest {
 
     @Test
     void deleteKeywordByCourse_returns204() throws Exception {
+        when(tokenUtils.getCurrentUser()).thenReturn(owner());
         mockMvc.perform(delete("/courses/alice/math/k1").header("token", buildToken()))
                 .andExpect(status().isNoContent());
         verify(service).deleteKeywordById("alice", "math", "k1");
+    }
+
+    @Test
+    void addKeywordByCourse_notOwner_returns401() throws Exception {
+        User other = new User();
+        other.setId(2);
+        other.setUsername("bob");
+        other.setPassword("secret");
+        when(tokenUtils.getCurrentUser()).thenReturn(other);
+
+        mockMvc.perform(post("/courses/alice/math/keywords")
+                .header("token", buildToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"keyword\":\"k2\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("仅课程创建者可修改"));
+        verify(service, never()).addKeywordByCourse(anyString(), anyString(), anyMap());
     }
 }

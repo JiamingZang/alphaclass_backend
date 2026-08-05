@@ -67,7 +67,7 @@ public class AssetService {
         asset.setName(params.get("name").toString());
         asset.setType(params.get("type").toString());
         asset.setUrl(params.get("url").toString());
-        asset.setSize((int) params.get("size"));
+        asset.setSize(MapUtils.parseInteger(params, "size"));
         asset.setThumbnail_url(params.get("thumbnail_url").toString());
         if (params.get("generated") != null) {
             asset.setGenerated(params.get("generated").toString().equals("true"));
@@ -85,18 +85,20 @@ public class AssetService {
         return toAssetMap(assetResult);
     }
 
-    /** 删除资产：软删除（deleted_at 置当前时间），不物理移除数据 */
-    public void deleteById(int id) {
-        dao.deleteAssetById(new Timestamp(System.currentTimeMillis()).toString(), id);
+    /** 删除资产（软删除）：仅限资产归属用户，不归属时返回 false */
+    public boolean deleteById(int uid, int id) {
+        return dao.deleteAssetByIdAndUid(new Timestamp(System.currentTimeMillis()).toString(), id, uid) > 0;
     }
 
-    /** 修改资产名称（仅支持 name），返回更新后的资产响应 */
-    public Map<String, Object> modifyById(int id, Map<String, Object> params) {
+    /** 修改资产名称（仅支持 name）：仅限资产归属用户，不归属/不存在时返回 null */
+    public Map<String, Object> modifyById(int uid, int id, Map<String, Object> params) {
         if (params.get("name") != null) {
-            dao.updateAssetById(params.get("name").toString(), new Timestamp(System.currentTimeMillis()).toString(), id);
+            dao.updateAssetByIdAndUid(params.get("name").toString(), new Timestamp(System.currentTimeMillis()).toString(), id, uid);
         }
-
         Asset assetResult = dao.getAssetById(id);
+        if (assetResult == null || assetResult.getUid() != uid) {
+            return null;
+        }
         return toAssetMap(assetResult);
     }
 

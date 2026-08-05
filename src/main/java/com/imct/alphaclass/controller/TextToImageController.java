@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.TextToImageService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -31,7 +32,11 @@ public class TextToImageController {
     @RequestMapping(value = "/services/text-to-image/generate-image", method = RequestMethod.POST)
     public JSONResult generateImage(@RequestBody Map<String, Object> params) throws com.aliyuncs.exceptions.ClientException {
         User user = tokenUtils.getCurrentUser();
-        return JSONResult.successWithData(service.generateImage(params.get("prompt").toString(), user.getId()));
+        Object prompt = params.get("prompt");
+        if (prompt == null) {
+            return JSONResult.failWithMsg(Constants.CODE_400, "缺少 prompt 参数");
+        }
+        return JSONResult.successWithData(service.generateImage(prompt.toString(), user.getId()));
     }
 
     /** 当前用户的文生图历史 */

@@ -156,26 +156,34 @@ class AssetServiceTest {
 
     @Test
     void deleteById_softDeletesWithTimestamp() {
-        when(dao.deleteAssetById(anyString(), eq(300))).thenReturn(1);
+        when(dao.deleteAssetByIdAndUid(anyString(), eq(300), eq(1))).thenReturn(1);
 
-        service.deleteById(300);
+        boolean result = service.deleteById(1, 300);
 
-        verify(dao).deleteAssetById(anyString(), eq(300));
+        assertTrue(result);
+        verify(dao).deleteAssetByIdAndUid(anyString(), eq(300), eq(1));
+    }
+
+    @Test
+    void deleteById_notOwner_returnsFalse() {
+        when(dao.deleteAssetByIdAndUid(anyString(), eq(300), eq(9))).thenReturn(0);
+
+        assertFalse(service.deleteById(9, 300));
     }
 
     @Test
     void modifyById_renamesAndReturnsAsset() {
-        when(dao.updateAssetById(eq("renamed"), anyString(), eq(300))).thenReturn(1);
+        when(dao.updateAssetByIdAndUid(eq("renamed"), anyString(), eq(300), eq(1))).thenReturn(1);
         when(dao.getAssetById(300)).thenReturn(buildAsset());
 
         Map<String, Object> params = new HashMap<>();
         params.put("name", "renamed");
 
-        Map<String, Object> result = service.modifyById(300, params);
+        Map<String, Object> result = service.modifyById(1, 300, params);
 
         assertNotNull(result);
         assertEquals("300", result.get("id"));
-        verify(dao).updateAssetById(eq("renamed"), anyString(), eq(300));
+        verify(dao).updateAssetByIdAndUid(eq("renamed"), anyString(), eq(300), eq(1));
     }
 
     @Test
@@ -184,9 +192,21 @@ class AssetServiceTest {
 
         Map<String, Object> params = new HashMap<>();
 
-        Map<String, Object> result = service.modifyById(300, params);
+        Map<String, Object> result = service.modifyById(1, 300, params);
 
         assertNotNull(result);
-        verify(dao, never()).updateAssetById(anyString(), anyString(), anyInt());
+        verify(dao, never()).updateAssetByIdAndUid(anyString(), anyString(), anyInt(), anyInt());
+    }
+
+    @Test
+    void modifyById_notOwner_returnsNull() {
+        Asset others = buildAsset();
+        others.setUid(2);
+        when(dao.getAssetById(300)).thenReturn(others);
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", "renamed");
+
+        assertNull(service.modifyById(1, 300, params));
     }
 }

@@ -1,6 +1,8 @@
 package com.imct.alphaclass.service;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.exception.ServiceException;
+import com.imct.alphaclass.utils.MapUtils;
 
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -30,6 +34,7 @@ public class WikiService {
 
     /** URL 代理抓取：清洗掉 script/link/style 后返回 HTML（供前端绕过跨域限制） */
     public String getDataFromUrl(String urlParam) {
+        validatePublicUrl(urlParam);
         OkHttpClient client = new OkHttpClient().newBuilder()
             .build();
         Request request = new Request.Builder()
@@ -55,7 +60,7 @@ public class WikiService {
         OkHttpClient client = new OkHttpClient().newBuilder()
             .build();
 
-        String uri = "http://baike.baidu.com/search/word?word=" + keyword;
+        String uri = "http://baike.baidu.com/search/word?word=" + MapUtils.urlEncode(keyword);
         Request request = new Request.Builder()
             .url(uri)
             .method("GET", null)
@@ -105,6 +110,9 @@ public class WikiService {
             Elements is_polysemant2 = document.getElementsByClass("lemmaWgt-subLemmaListTitle");
             if (!is_polysemant2.isEmpty()) {
                 Element poly_node2 = document.getElementsByClass("custom_dot para-list list-paddingleft-1").first();
+                if (poly_node2 == null) {
+                    return results;
+                }
                 Elements nodes = poly_node2.select("a");
                 for (Element node : nodes) {
                     href = "https://baike.baidu.com" + node.attr("href");
@@ -125,6 +133,7 @@ public class WikiService {
 
     /** 抓取百科条目详情页的标题与长描述 */
     public Map<String, Object> getLongDescription(String uri) {
+        validatePublicUrl(uri);
         OkHttpClient client = new OkHttpClient().newBuilder()
             .build();
         String description = "";
@@ -141,8 +150,12 @@ public class WikiService {
             document.select("style").remove();
 
             Element kwbox = document.select("meta[name=description]").first();
-            description = kwbox.attr("content");
-            String keyword = document.getElementsByClass("lemmaWgt-lemmaTitle-title J-lemma-title").first().select("h1").first().text();
+            description = kwbox == null ? "" : kwbox.attr("content");
+            Element titleEl = document.getElementsByClass("lemmaWgt-lemmaTitle-title J-lemma-title").first();
+            if (titleEl == null) {
+                throw new ServiceException(Constants.CODE_400, "页面结构异常");
+            }
+            String keyword = titleEl.select("h1").first().text();
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("keyword", keyword);
             result.put("long_description", description);
@@ -150,6 +163,31 @@ public class WikiService {
         } catch (Exception e) {
             e.printStackTrace();
             throw new ServiceException(Constants.CODE_400, e.toString());
+        }
+    }
+
+    /** SSRF 防御：仅允许公网 http/https 目标，拒绝内网/环回/元数据地址 */
+    private static void validatePublicUrl(String url) {
+        HttpUrl parsed = HttpUrl.parse(url);
+        if (parsed == null || !("http".equals(parsed.scheme()) || "https".equals(parsed.scheme()))) {
+            throw new ServiceException(Constants.CODE_400, "仅支持 http/https 地址");
+        }
+        if (isInternalHost(parsed.host())) {
+            throw new ServiceException(Constants.CODE_400, "不允许访问内网地址");
+        }
+    }
+
+    /** 主机是否为内网/环回/链路本地地址（localhost、字面 IP、或 DNS 解析结果） */
+    private static boolean isInternalHost(String host) {
+        if ("localhost".equalsIgnoreCase(host)) {
+            return true;
+        }
+        try {
+            InetAddress addr = InetAddress.getByName(host);
+            return addr.isLoopbackAddress() || addr.isSiteLocalAddress()
+                    || addr.isLinkLocalAddress() || addr.isAnyLocalAddress();
+        } catch (UnknownHostException e) {
+            return false; // 域名解析失败时放行，由请求阶段报错
         }
     }
 

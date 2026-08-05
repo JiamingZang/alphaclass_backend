@@ -48,15 +48,27 @@ public class AssetController {
         return JSONResult.successWithData(service.addAsset(user.getUsername(), params));
     }
 
+    /** 删除资产（需登录，仅资产归属者可删除） */
     @RequestMapping(value = "/user/assets/{id}", method = RequestMethod.DELETE)
     public JSONResult deleteById(@PathVariable int id) {
-        service.deleteById(id);
+        User user = tokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+        }
+        if (!service.deleteById(user.getId(), id)) {
+            return JSONResult.failWithMsg(Constants.CODE_404, "资源不存在");
+        }
         return JSONResult.customWithStatus(Constants.CODE_204);
     }
 
+    /** 修改资产（需登录，仅资产归属者可修改） */
     @RequestMapping(value = "/user/assets/{id}", method = RequestMethod.PUT)
     public JSONResult modifyById(@PathVariable int id, @RequestBody Map<String, Object> params) {
-        Map<String, Object> result = service.modifyById(id, params);
+        User user = tokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+        }
+        Map<String, Object> result = service.modifyById(user.getId(), id, params);
         if (result != null) {
             return JSONResult.successWithData(result);
         } else {

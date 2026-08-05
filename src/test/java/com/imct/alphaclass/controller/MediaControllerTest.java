@@ -23,6 +23,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.service.MediaService;
 import com.imct.alphaclass.service.UserService;
+import com.imct.alphaclass.utils.TokenUtils;
 
 /**
  * MediaController 路由与响应契约测试（MockMvc，不依赖数据库）。
@@ -39,6 +40,16 @@ class MediaControllerTest {
     @MockBean
     private UserService userService;
 
+    @MockBean
+    private TokenUtils tokenUtils;
+
+    private User owner() {
+        User user = new User();
+        user.setId(1);
+        user.setUsername("alice");
+        user.setPassword("secret");
+        return user;
+    }
     private String buildToken() {
         User user = new User();
         user.setId(1);
@@ -92,6 +103,7 @@ class MediaControllerTest {
         result.put("id", "200");
         result.put("name", "newMedia");
         when(service.addMediaByKeyword(eq("alice"), eq("math"), eq("k1"), anyMap())).thenReturn(result);
+        when(tokenUtils.getCurrentUser()).thenReturn(owner());
 
         mockMvc.perform(post("/courses/alice/math/k1/medias")
                 .header("token", buildToken())
@@ -113,6 +125,7 @@ class MediaControllerTest {
 
     @Test
     void deleteMediaById_returns204() throws Exception {
+        when(tokenUtils.getCurrentUser()).thenReturn(owner());
         mockMvc.perform(delete("/courses/alice/math/k1/medias/200").header("token", buildToken()))
                 .andExpect(status().isNoContent());
         verify(service).deleteMediaById("math", "alice", "k1", 200);
@@ -124,6 +137,7 @@ class MediaControllerTest {
         result.put("id", "200");
         result.put("name", "renamed");
         when(service.modifyMediaById(eq("math"), eq("alice"), eq("k1"), eq(200), anyMap())).thenReturn(result);
+        when(tokenUtils.getCurrentUser()).thenReturn(owner());
 
         mockMvc.perform(put("/courses/alice/math/k1/medias/200")
                 .header("token", buildToken())
@@ -140,6 +154,7 @@ class MediaControllerTest {
         result.put("type", "translation");
         when(service.addMediaTranslationOrWikiByKeyword(eq("alice"), eq("math"), eq("k1"), anyMap()))
                 .thenReturn(result);
+        when(tokenUtils.getCurrentUser()).thenReturn(owner());
 
         mockMvc.perform(post("/courses/alice/math/k1/medias/trans_or_wiki")
                 .header("token", buildToken())
@@ -149,5 +164,22 @@ class MediaControllerTest {
                         + "\"media_translation\":{\"word\":\"apple\"}}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("200"));
+    }
+
+    @Test
+    void modifyMediaById_notOwner_returns401() throws Exception {
+        User other = new User();
+        other.setId(2);
+        other.setUsername("bob");
+        other.setPassword("secret");
+        when(tokenUtils.getCurrentUser()).thenReturn(other);
+
+        mockMvc.perform(put("/courses/alice/math/k1/medias/200")
+                .header("token", buildToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"renamed\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("仅课程创建者可修改"));
+        verify(service, never()).modifyMediaById(anyString(), anyString(), anyString(), anyInt(), anyMap());
     }
 }
