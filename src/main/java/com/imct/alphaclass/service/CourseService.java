@@ -29,10 +29,10 @@ public class CourseService {
         DateTimeFormatter simple = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         List<Map<String, Object>> courses= dao.getAllCourseByUid(user.getId());
         for (Map<String,Object> course : courses) {
-            course.put("keywords_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+course.get("name")+"/keywords");
-            course.put("anchors_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+course.get("name")+"/anchors");
+            course.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+course.get("name")+"/keywords");
+            course.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+course.get("name")+"/anchors");
             Map<String, Object> userResult = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
-            // userResult.put("url", "https://123.56.224.193/courses/"+user.getUsername());
+            // userResult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername());
             course.put("user", userResult);
             course.remove("uid");
             course.put("id", course.get("id").toString());
@@ -51,8 +51,8 @@ public class CourseService {
         Course courseResult = dao.getCourseById(course.getId());
         Map<String, Object> result = JSON.parseObject(JSON.toJSONString(courseResult), new TypeReference<Map<String, Object>>() {});
         result.remove("uid");
-        result.put("keywords_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
-        result.put("anchors_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
+        result.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
+        result.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
         return result;
     }
 
@@ -62,10 +62,10 @@ public class CourseService {
         // DateTimeFormatter simple = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         if (course!=null) {
             Map<String, Object> result = JSON.parseObject(JSON.toJSONString(course), new TypeReference<Map<String, Object>>() {});
-            result.put("keywords_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
-            result.put("anchors_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
+            result.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
+            result.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
             Map<String, Object> userResult = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
-            userResult.put("url", "https://123.56.224.193/users/"+user.getUsername());
+            userResult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.getUsername());
             result.put("user", userResult);
             result.remove("uid");
             result.put("id", result.get("id").toString());
@@ -84,10 +84,10 @@ public class CourseService {
 
             User user = userdao.getById(course.getUid());
             Map<String, Object> result = JSON.parseObject(JSON.toJSONString(course), new TypeReference<Map<String, Object>>() {});
-            result.put("keywords_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
-            result.put("anchors_url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
+            result.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
+            result.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
             Map<String, Object> userResult = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
-            userResult.put("url", "https://123.56.224.193/users/"+user.getUsername());
+            userResult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.getUsername());
             userResult.remove("password");
             result.put("user", userResult);
             result.remove("uid");
@@ -107,7 +107,7 @@ public class CourseService {
             params.get("name").toString(), params.get("description").toString(), params.get("cover_url").toString(),
             new Timestamp(System.currentTimeMillis()).toString(),user.getId(), Coursename);
         Map<String, Object> result = getByUserAndName(username, params.get("name").toString());
-        result.put("url", "https://123.56.224.193/courses/"+user.getUsername()+"/"+result.get("name"));
+        result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name"));
         return result;
         
     }

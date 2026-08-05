@@ -17,19 +17,19 @@ public interface KeywordDAO {
     @Select("select * from keyword where cid = #{cid}")
     public List<Map<String, Object>> getAllKeywordsByCid(int cid);
 
-    @Select("select id,keyword,wiki,translation_english,phonetic_UK,phonetic_US,sentence_CN,sentence_EN from keyword where cid = #{cid} and keyword = #{name}")
+    @Select("select id,keyword from keyword where cid = #{cid} and keyword = #{name}")
     public Keyword getKeywordByCidAndName(int cid, String name);
 
     @Select("select * from keyword where id = #{id}")
     public Keyword getKeywordById(int id);
 
-    @Update("update keyword set keyword = #{new_keyword}, translation_english = #{new_translation_english}, phonetic_UK = #{new_phonetic_UK},phonetic_US = #{new_phonetic_US},sentence_CN=#{new_sentence_CN},sentence_EN=#{new_sentence_EN},wiki=#{new_wiki} where cid = #{cid} and keyword = #{name}")
-    public int updateKeywordByCidAndName(String new_keyword, String new_translation_english, String new_phonetic_UK,String new_phonetic_US,String new_sentence_CN,String new_sentence_EN,String new_wiki,int cid, String name);
+    @Update("update keyword set keyword = #{new_keyword} where cid = #{cid} and keyword = #{name}")
+    public int updateKeywordByCidAndName(String new_keyword,int cid, String name);
 
     @Delete("delete from keyword where cid = #{cid} and keyword = #{name}")
     public boolean deleteKeywordByCidAndName(int cid, String name);
 
-    @Insert("Insert into keyword (cid, keyword,wiki,translation_english,phonetic_UK,phonetic_US,sentence_CN,sentence_EN) values(#{cid},#{keyword},#{wiki},#{translation_english},#{phonetic_UK},#{phonetic_US},#{sentence_CN},#{sentence_EN})")
+    @Insert("Insert into keyword (cid, keyword) values(#{cid},#{keyword})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     public void addKeyword(Keyword keyword);
 }

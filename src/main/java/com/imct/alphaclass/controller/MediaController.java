@@ -25,8 +25,14 @@ public class MediaController {
     }
 
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}/medias",method = RequestMethod.POST)
-    public JSONResult addKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword,@RequestBody Map<String, Object> params) {
+    public JSONResult addMediaByKeyword(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword,@RequestBody Map<String, Object> params) {
         Map<String, Object> result = service.addMediaByKeyword(owner, course,keyword, params);
+        return JSONResult.successWithData(result);   
+    }
+
+    @RequestMapping(value = "/courses/{owner}/{course}/{keyword}/medias/trans_or_wiki",method = RequestMethod.POST)
+    public JSONResult addTransOrWikiMediaByKeyword(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword,@RequestBody Map<String, Object> params) {
+        Map<String, Object> result = service.addMediaTranslationOrWikiByKeyword(owner, course,keyword, params);
         return JSONResult.successWithData(result);   
     }
 

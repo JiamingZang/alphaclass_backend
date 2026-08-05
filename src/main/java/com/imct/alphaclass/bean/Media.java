@@ -5,7 +5,7 @@ import java.io.Serializable;
 public class Media implements Serializable {
     private int id;
     private int anchorid;
-    private int assetid;
+    private Integer assetid;
     private int kid;
     private String name;
     private String type;
@@ -49,10 +49,10 @@ public class Media implements Serializable {
     public void setAnchorid(int anchorid) {
         this.anchorid = anchorid;
     }
-    public int getAssetid() {
+    public Integer getAssetid() {
         return assetid;
     }
-    public void setAssetid(int assetid) {
+    public void setAssetid(Integer assetid) {
         this.assetid = assetid;
     }
     public int getKid() {

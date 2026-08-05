@@ -21,8 +21,8 @@ public class UserService {
         List<Map<String,Object>> users = dao.findAll();
         for (Map<String,Object> user : users) {
             user.put("id", user.get("id").toString());
-            user.put("url", "https://123.56.224.193/users/"+user.get("username"));
-            user.put("courses_url", "https://123.56.224.193/users/"+user.get("username")+"/courses");
+            user.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.get("username"));
+            user.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.get("username")+"/courses");
         }
         return users;
     }
@@ -32,8 +32,8 @@ public class UserService {
             dao.register(user);
             Map<String, Object> result = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
             result.put("id", result.get("id").toString());
-            result.put("url", "https://123.56.224.193/users/"+result.get("username"));
-            result.put("courses_url", "https://123.56.224.193/users/"+result.get("username")+"/courses");
+            result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username"));
+            result.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username")+"/courses");
             return result;
         }else{
             return null;
@@ -46,8 +46,8 @@ public class UserService {
         if (user!=null) {
             Map<String, Object> result = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
             result.put("id", result.get("id").toString());
-            result.put("url", "https://123.56.224.193/users/"+result.get("username"));
-            result.put("courses_url", "https://123.56.224.193/users/"+result.get("username")+"/courses");
+            result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username"));
+            result.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username")+"/courses");
             return result;
         }else{
             return null;
@@ -59,8 +59,8 @@ public class UserService {
         if (resultUser!=null){ 
             Map<String, Object> result = JSON.parseObject(JSON.toJSONString(resultUser), new TypeReference<Map<String, Object>>() {});
             result.put("id", result.get("id").toString());
-            result.put("url", "https://123.56.224.193/users/"+result.get("username"));
-            result.put("courses_url", "https://123.56.224.193/users/"+result.get("username")+"/courses");
+            result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username"));
+            result.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username")+"/courses");
             return result;
         }else{
             return null;

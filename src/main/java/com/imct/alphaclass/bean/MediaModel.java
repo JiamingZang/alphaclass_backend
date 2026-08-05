@@ -2,7 +2,7 @@ package com.imct.alphaclass.bean;
 
 import java.io.Serializable;
 
-public class Modelinfo implements Serializable {
+public class MediaModel implements Serializable {
     private int id;
     private float scale_x;
     private float scale_y;

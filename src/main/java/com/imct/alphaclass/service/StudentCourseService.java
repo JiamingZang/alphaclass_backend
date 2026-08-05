@@ -35,7 +35,7 @@ public class StudentCourseService {
             User u = userdao.getById(Integer.valueOf(sc.get("sid").toString()));
             Map<String, Object> uresult = JSON.parseObject(JSON.toJSONString(u), new TypeReference<Map<String, Object>>() {});
             uresult.remove("password");
-            uresult.put("url", "https://123.56.224.193/users/"+uresult.get("username"));
+            uresult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+uresult.get("username"));
             uresult.put("id", uresult.get("id").toString());
             result.add(uresult);
         }
@@ -74,11 +74,11 @@ public class StudentCourseService {
             User u = userdao.getById(Integer.valueOf(cresult.get("uid").toString()));
             Map<String, Object> uresult = JSON.parseObject(JSON.toJSONString(u), new TypeReference<Map<String, Object>>() {});
             uresult.remove("password");
-            uresult.put("url", "https://123.56.224.193/users/"+uresult.get("username"));
+            uresult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+uresult.get("username"));
             uresult.put("id", uresult.get("id").toString());
             cresult.remove("uid");cresult.remove("created_at");cresult.remove("updated_at");
             cresult.put("user", uresult);
-            cresult.put("course_url", "https://123.56.224.193/"+uresult.get("username")+"/"+cresult.get("name"));
+            cresult.put("course_url", "https://SERVER_IP_PLACEHOLDER/v2/"+uresult.get("username")+"/"+cresult.get("name"));
             cresult.put("id", cresult.get("id").toString());
             result.add(cresult);
         }

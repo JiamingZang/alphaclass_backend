@@ -16,12 +16,12 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.Animation;
 import com.imct.alphaclass.bean.Asset;
-import com.imct.alphaclass.bean.Modelinfo;
+import com.imct.alphaclass.bean.MediaModel;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.AnimationDAO;
 import com.imct.alphaclass.dao.AssetDAO;
 import com.imct.alphaclass.dao.UserDAO;
-import com.imct.alphaclass.dao.ModelinfoDAO;
+import com.imct.alphaclass.dao.MediaModelDAO;
 
 @Service
 public class AssetService {
@@ -33,7 +33,7 @@ public class AssetService {
     private UserDAO userdao;
 
     @Resource
-    private ModelinfoDAO modelinfodao;
+    private MediaModelDAO modelinfodao;
 
     @Resource
     private AnimationDAO animationDAO;
@@ -61,40 +61,40 @@ public class AssetService {
                 asset.remove("deleted_at");
                 
                 // 如果为model类型则添加modelinfo字段
-                if (asset.get("type").toString().equals("model")) {
-                    Modelinfo modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(asset.get("id").toString()));
-                    // "model_info": {
-                    //     "anime_to_play": "take 001",
-                    //     "scale": {
-                    //       "scale_x": 1,
-                    //       "scale_y": 1,
-                    //       "scale_z": 1
-                    //     },
-                    //     "animations": [
-                    //       "take 001",
-                    //       "take 002",
-                    //       "take 003"
-                    //     ]
-                    //   }
-                    if (modelinfo!=null) {
-                        Map<String,Object> scale = new HashMap<String,Object>();
-                        scale.put("scale_x", modelinfo.getScale_x());
-                        scale.put("scale_y", modelinfo.getScale_y());
-                        scale.put("scale_z", modelinfo.getScale_z());
-                        List<String> animationsList = new ArrayList<String>();
-                        for (Map<String, Object> animation: 
-                        animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
-                            animationsList.add(animation.get("name").toString());
-                        }
+                // if (asset.get("type").toString().equals("model")) {
+                //     MediaModel modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(asset.get("id").toString()));
+                //     // "model_info": {
+                //     //     "anime_to_play": "take 001",
+                //     //     "scale": {
+                //     //       "scale_x": 1,
+                //     //       "scale_y": 1,
+                //     //       "scale_z": 1
+                //     //     },
+                //     //     "animations": [
+                //     //       "take 001",
+                //     //       "take 002",
+                //     //       "take 003"
+                //     //     ]
+                //     //   }
+                //     if (modelinfo!=null) {
+                //         Map<String,Object> scale = new HashMap<String,Object>();
+                //         scale.put("scale_x", modelinfo.getScale_x());
+                //         scale.put("scale_y", modelinfo.getScale_y());
+                //         scale.put("scale_z", modelinfo.getScale_z());
+                //         List<String> animationsList = new ArrayList<String>();
+                //         for (Map<String, Object> animation: 
+                //         animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
+                //             animationsList.add(animation.get("name").toString());
+                //         }
 
-                        Map<String,Object> model_info = new HashMap<String,Object>();
-                        model_info.put("anime_to_play", modelinfo.getAnime_to_play());
-                        model_info.put("scale", scale);
-                        model_info.put("animations", animationsList);
-                        // 加入asset中
-                        asset.put("model_info", model_info);
-                    }
-                }
+                //         Map<String,Object> model_info = new HashMap<String,Object>();
+                //         model_info.put("anime_to_play", modelinfo.getAnime_to_play());
+                //         model_info.put("scale", scale);
+                //         model_info.put("animations", animationsList);
+                //         // 加入asset中
+                //         asset.put("model_info", model_info);
+                //     }
+                // }
                 result.add(asset);
             }
         }
@@ -103,52 +103,52 @@ public class AssetService {
 
     public Map<String, Object> getAssetById(int id) {
         Asset assetResult = dao.getAssetById(id);
-        Modelinfo modelinfo = new Modelinfo();
+        MediaModel modelinfo = new MediaModel();
         // 响应内容
         Map<String, Object> result = JSON.parseObject(JSON.toJSONString(assetResult), new TypeReference<Map<String, Object>>() {});
         result.remove("uid");
         result.put("id", result.get("id").toString());
         // 如果为model类型则添加modelinfo字段
-        if (result.get("type").toString().equals("model")) {
-            modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(result.get("id").toString()));
-            // "model_info": {
-                    //     "anime_to_play": "take 001",
-                    //     "scale": {
-                    //       "scale_x": 1,
-                    //       "scale_y": 1,
-                    //       "scale_z": 1
-                    //     },
-                    //     "animations": [
-                    //       "take 001",
-                    //       "take 002",
-                    //       "take 003"
-                    //     ]
-                    //   }
-            if (modelinfo!=null) {
-                Map<String,Object> scale = new HashMap<String,Object>();
-                scale.put("scale_x", modelinfo.getScale_x());
-                scale.put("scale_y", modelinfo.getScale_y());
-                scale.put("scale_z", modelinfo.getScale_z());
-                List<String> animationsList = new ArrayList<String>();
-                for (Map<String, Object> animation: 
-                animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
-                    animationsList.add(animation.get("name").toString());
-                }
+        // if (result.get("type").toString().equals("model")) {
+        //     modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(result.get("id").toString()));
+        //     // "model_info": {
+        //             //     "anime_to_play": "take 001",
+        //             //     "scale": {
+        //             //       "scale_x": 1,
+        //             //       "scale_y": 1,
+        //             //       "scale_z": 1
+        //             //     },
+        //             //     "animations": [
+        //             //       "take 001",
+        //             //       "take 002",
+        //             //       "take 003"
+        //             //     ]
+        //             //   }
+        //     if (modelinfo!=null) {
+        //         Map<String,Object> scale = new HashMap<String,Object>();
+        //         scale.put("scale_x", modelinfo.getScale_x());
+        //         scale.put("scale_y", modelinfo.getScale_y());
+        //         scale.put("scale_z", modelinfo.getScale_z());
+        //         List<String> animationsList = new ArrayList<String>();
+        //         for (Map<String, Object> animation: 
+        //         animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
+        //             animationsList.add(animation.get("name").toString());
+        //         }
 
-                Map<String,Object> model_info = new HashMap<String,Object>();
-                model_info.put("anime_to_play", modelinfo.getAnime_to_play());
-                model_info.put("scale", scale);
-                model_info.put("animations", animationsList);
-                // 加入asset中
-                result.put("model_info", model_info);
-            }
-        }
+        //         Map<String,Object> model_info = new HashMap<String,Object>();
+        //         model_info.put("anime_to_play", modelinfo.getAnime_to_play());
+        //         model_info.put("scale", scale);
+        //         model_info.put("animations", animationsList);
+        //         // 加入asset中
+        //         result.put("model_info", model_info);
+        //     }
+        // }
         return result;
 
     }
 
     public Map<String, Object> addAsset(String username,Map<String, Object> params){
-        Modelinfo modelinfo = new Modelinfo();
+        MediaModel modelinfo = new MediaModel();
         Asset asset = new Asset();
         List<String> animations = new ArrayList<String>();
         asset.setName(params.get("name").toString());
@@ -156,22 +156,27 @@ public class AssetService {
         asset.setUrl(params.get("url").toString());
         asset.setSize((int)params.get("size"));
         asset.setThumbnail_url(params.get("thumbnail_url").toString());
-        asset.setGenerated((Boolean)params.get("generated").toString().equals("true"));
-        // 如果没有model_info就直接转为asset对象
-        if (params.get("model_info")!=null) {
-            // 试一下能不能转成
-            // asset = JSON.parseObject(params,new TypeReference<Asset>() {});
-            Map<String,Object> model_info = (Map<String, Object>)params.get("model_info");
-            modelinfo.setAnime_to_play(model_info.get("anime_to_play").toString());
-            Map<String,Object> scale = (Map<String, Object>)model_info.get("scale");
-            modelinfo.setScale_x(Float.valueOf(scale.get("scale_x").toString()));
-            modelinfo.setScale_y(Float.valueOf(scale.get("scale_y").toString()));
-            modelinfo.setScale_z(Float.valueOf(scale.get("scale_z").toString()));
-
-            // 获取animation名称列表
-            animations = (ArrayList<String>)model_info.get("animations");
-
+        if (params.get("generated")!=null) {
+            asset.setGenerated((Boolean)params.get("generated").toString().equals("true"));
+        }else{
+            asset.setGenerated(false);
         }
+        
+        // // 如果没有model_info就直接转为asset对象
+        // if (params.get("model_info")!=null) {
+        //     // 试一下能不能转成
+        //     // asset = JSON.parseObject(params,new TypeReference<Asset>() {});
+        //     Map<String,Object> model_info = (Map<String, Object>)params.get("model_info");
+        //     modelinfo.setAnime_to_play(model_info.get("anime_to_play").toString());
+        //     Map<String,Object> scale = (Map<String, Object>)model_info.get("scale");
+        //     modelinfo.setScale_x(Float.valueOf(scale.get("scale_x").toString()));
+        //     modelinfo.setScale_y(Float.valueOf(scale.get("scale_y").toString()));
+        //     modelinfo.setScale_z(Float.valueOf(scale.get("scale_z").toString()));
+
+        //     // 获取animation名称列表
+        //     animations = (ArrayList<String>)model_info.get("animations");
+
+        // }
 
         User user = userdao.getByUsername(username);
         asset.setUid(user.getId());
@@ -180,18 +185,18 @@ public class AssetService {
         dao.addAsset(asset);
         Asset assetResult = dao.getAssetById(asset.getId());
         // 添加modelinfo
-        if (params.get("model_info")!=null) {
-            int mid = assetResult.getId();
-            modelinfo.setId(mid);
-            modelinfodao.addModelinfo(modelinfo);
-            // 添加animation
-            for (String animationName : animations) {
-                Animation tempAnimation = new Animation();
-                tempAnimation.setName(animationName);
-                tempAnimation.setMid(mid);
-                animationDAO.addAnimation(tempAnimation);
-            }
-        }
+        // if (params.get("model_info")!=null) {
+        //     int mid = assetResult.getId();
+        //     modelinfo.setId(mid);
+        //     modelinfodao.addModelinfo(modelinfo);
+        //     // 添加animation
+        //     for (String animationName : animations) {
+        //         Animation tempAnimation = new Animation();
+        //         tempAnimation.setName(animationName);
+        //         tempAnimation.setMid(mid);
+        //         animationDAO.addAnimation(tempAnimation);
+        //     }
+        // }
         
 
         // 响应内容
@@ -199,40 +204,40 @@ public class AssetService {
         result.remove("uid");
         result.put("id", result.get("id").toString());
         // 如果为model类型则添加modelinfo字段
-        if (result.get("type").toString().equals("model")) {
-            modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(result.get("id").toString()));
-            // "model_info": {
-                    //     "anime_to_play": "take 001",
-                    //     "scale": {
-                    //       "scale_x": 1,
-                    //       "scale_y": 1,
-                    //       "scale_z": 1
-                    //     },
-                    //     "animations": [
-                    //       "take 001",
-                    //       "take 002",
-                    //       "take 003"
-                    //     ]
-                    //   }
-            if (modelinfo!=null) {
-                Map<String,Object> scale = new HashMap<String,Object>();
-                scale.put("scale_x", modelinfo.getScale_x());
-                scale.put("scale_y", modelinfo.getScale_y());
-                scale.put("scale_z", modelinfo.getScale_z());
-                List<String> animationsList = new ArrayList<String>();
-                for (Map<String, Object> animation: 
-                animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
-                    animationsList.add(animation.get("name").toString());
-                }
+        // if (result.get("type").toString().equals("model")) {
+        //     modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(result.get("id").toString()));
+        //     // "model_info": {
+        //             //     "anime_to_play": "take 001",
+        //             //     "scale": {
+        //             //       "scale_x": 1,
+        //             //       "scale_y": 1,
+        //             //       "scale_z": 1
+        //             //     },
+        //             //     "animations": [
+        //             //       "take 001",
+        //             //       "take 002",
+        //             //       "take 003"
+        //             //     ]
+        //             //   }
+        //     if (modelinfo!=null) {
+        //         Map<String,Object> scale = new HashMap<String,Object>();
+        //         scale.put("scale_x", modelinfo.getScale_x());
+        //         scale.put("scale_y", modelinfo.getScale_y());
+        //         scale.put("scale_z", modelinfo.getScale_z());
+        //         List<String> animationsList = new ArrayList<String>();
+        //         for (Map<String, Object> animation: 
+        //         animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
+        //             animationsList.add(animation.get("name").toString());
+        //         }
 
-                Map<String,Object> model_info = new HashMap<String,Object>();
-                model_info.put("anime_to_play", modelinfo.getAnime_to_play());
-                model_info.put("scale", scale);
-                model_info.put("animations", animationsList);
-                // 加入asset中
-                result.put("model_info", model_info);
-            }
-        }
+        //         Map<String,Object> model_info = new HashMap<String,Object>();
+        //         model_info.put("anime_to_play", modelinfo.getAnime_to_play());
+        //         model_info.put("scale", scale);
+        //         model_info.put("animations", animationsList);
+        //         // 加入asset中
+        //         result.put("model_info", model_info);
+        //     }
+        // }
         return result;
     }
 
@@ -244,43 +249,43 @@ public class AssetService {
         if(params.get("name")!=null){
             dao.updateAssetById(params.get("name").toString(), new Timestamp(System.currentTimeMillis()).toString(), id);
         }
-        if (params.get("model_info")!=null){
+        // if (params.get("model_info")!=null){
             
-            Modelinfo modelinfo = new Modelinfo();
-            Map<String,Object> model_info = (Map<String, Object>)params.get("model_info");
-            Map<String,Object> scale = (Map<String, Object>)model_info.get("scale");
-            if (modelinfodao.getModelinfoById(id)!=null) {
+        //     MediaModel modelinfo = new MediaModel();
+        //     Map<String,Object> model_info = (Map<String, Object>)params.get("model_info");
+        //     Map<String,Object> scale = (Map<String, Object>)model_info.get("scale");
+        //     if (modelinfodao.getModelinfoById(id)!=null) {
 
-                modelinfodao.updateModelinfoById(
-                    model_info.get("anime_to_play").toString(), 
-                    Float.valueOf(scale.get("scale_x").toString()), 
-                    Float.valueOf(scale.get("scale_y").toString()), 
-                    Float.valueOf(scale.get("scale_z").toString()), 
-                    id);
-            }else{
-                modelinfo.setId(id);
-                modelinfo.setAnime_to_play(model_info.get("anime_to_play").toString());
-                modelinfo.setScale_x(Float.valueOf(scale.get("scale_x").toString()));
-                modelinfo.setScale_y(Float.valueOf(scale.get("scale_y").toString()));
-                modelinfo.setScale_z(Float.valueOf(scale.get("scale_z").toString()));
-                modelinfodao.addModelinfo(modelinfo);
-            }
+        //         modelinfodao.updateModelinfoById(
+        //             model_info.get("anime_to_play").toString(), 
+        //             Float.valueOf(scale.get("scale_x").toString()), 
+        //             Float.valueOf(scale.get("scale_y").toString()), 
+        //             Float.valueOf(scale.get("scale_z").toString()), 
+        //             id);
+        //     }else{
+        //         modelinfo.setId(id);
+        //         modelinfo.setAnime_to_play(model_info.get("anime_to_play").toString());
+        //         modelinfo.setScale_x(Float.valueOf(scale.get("scale_x").toString()));
+        //         modelinfo.setScale_y(Float.valueOf(scale.get("scale_y").toString()));
+        //         modelinfo.setScale_z(Float.valueOf(scale.get("scale_z").toString()));
+        //         modelinfodao.addModelinfo(modelinfo);
+        //     }
                     
-            // 更改animation表，思路是先删除对应modelinfo所有的animation再加上去
-            if (model_info.get("animations")!=null) {
-                // 获取animation名称列表
-                List<String> animations = (ArrayList<String>)model_info.get("animations");
-                animationDAO.deleteAnimationByModelinfoId(id);
+        //     // 更改animation表，思路是先删除对应modelinfo所有的animation再加上去
+        //     if (model_info.get("animations")!=null) {
+        //         // 获取animation名称列表
+        //         List<String> animations = (ArrayList<String>)model_info.get("animations");
+        //         animationDAO.deleteAnimationByModelinfoId(id);
 
-                // 添加animation
-                for (String animationName : animations) {
-                    Animation tempAnimation = new Animation();
-                    tempAnimation.setName(animationName);
-                    tempAnimation.setMid(id);
-                    animationDAO.addAnimation(tempAnimation);
-                }
-            }
-        }
+        //         // 添加animation
+        //         for (String animationName : animations) {
+        //             Animation tempAnimation = new Animation();
+        //             tempAnimation.setName(animationName);
+        //             tempAnimation.setMid(id);
+        //             animationDAO.addAnimation(tempAnimation);
+        //         }
+        //     }
+        // }
 
 
         Asset assetResult = dao.getAssetById(id);
@@ -288,40 +293,40 @@ public class AssetService {
         result.remove("uid");
         result.put("id", result.get("id").toString());
         // 如果为model类型则添加modelinfo字段
-        if (result.get("type").toString().equals("model")) {
-            Modelinfo modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(result.get("id").toString()));
-            // "model_info": {
-            //     "anime_to_play": "take 001",
-            //     "scale": {
-            //       "scale_x": 1,
-            //       "scale_y": 1,
-            //       "scale_z": 1
-            //     },
-            //     "animations": [
-            //       "take 001",
-            //       "take 002",
-            //       "take 003"
-            //     ]
-            //   }
-            if (modelinfo!=null) {
-                Map<String,Object> scale = new HashMap<String,Object>();
-                scale.put("scale_x", modelinfo.getScale_x());
-                scale.put("scale_y", modelinfo.getScale_y());
-                scale.put("scale_z", modelinfo.getScale_z());
-                List<String> animationsList = new ArrayList<String>();
-                for (Map<String, Object> animation: 
-                animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
-                    animationsList.add(animation.get("name").toString());
-                }
+        // if (result.get("type").toString().equals("model")) {
+        //     MediaModel modelinfo = modelinfodao.getModelinfoById(Integer.valueOf(result.get("id").toString()));
+        //     // "model_info": {
+        //     //     "anime_to_play": "take 001",
+        //     //     "scale": {
+        //     //       "scale_x": 1,
+        //     //       "scale_y": 1,
+        //     //       "scale_z": 1
+        //     //     },
+        //     //     "animations": [
+        //     //       "take 001",
+        //     //       "take 002",
+        //     //       "take 003"
+        //     //     ]
+        //     //   }
+        //     if (modelinfo!=null) {
+        //         Map<String,Object> scale = new HashMap<String,Object>();
+        //         scale.put("scale_x", modelinfo.getScale_x());
+        //         scale.put("scale_y", modelinfo.getScale_y());
+        //         scale.put("scale_z", modelinfo.getScale_z());
+        //         List<String> animationsList = new ArrayList<String>();
+        //         for (Map<String, Object> animation: 
+        //         animationDAO.getAnimationsByModelinfoId(modelinfo.getId())) {
+        //             animationsList.add(animation.get("name").toString());
+        //         }
 
-                Map<String,Object> model_info = new HashMap<String,Object>();
-                model_info.put("anime_to_play", modelinfo.getAnime_to_play());
-                model_info.put("scale", scale);
-                model_info.put("animations", animationsList);
-                // 加入asset中
-                result.put("model_info", model_info);
-            }
-        }
+        //         Map<String,Object> model_info = new HashMap<String,Object>();
+        //         model_info.put("anime_to_play", modelinfo.getAnime_to_play());
+        //         model_info.put("scale", scale);
+        //         model_info.put("animations", animationsList);
+        //         // 加入asset中
+        //         result.put("model_info", model_info);
+        //     }
+        // }
         return result;
         
     }

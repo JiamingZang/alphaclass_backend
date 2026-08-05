@@ -1,9 +1,5 @@
 package com.imct.alphaclass.controller;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,6 +25,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -37,6 +34,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 public class TranslationController {
@@ -44,10 +43,10 @@ public class TranslationController {
     @RequestMapping(value = "/services/zh-to-en", method = RequestMethod.GET)
     public JSONResult translateZhToEN(@RequestParam(name = "word",required = true) String word){
         YoudaoTranslationResult translation = translateCN(word);
-        if (translation.basic==null){
-            return JSONResult.successWithData(new HashMap<>());
-        }
-        CN2ENResult res = new CN2ENResult(word, translation.basic.explains);
+        // if (translation.basic==null){
+        //     return JSONResult.successWithData(new HashMap<>());
+        // }
+        CN2ENResult res = new CN2ENResult(word, translation.translation);
         return JSONResult.successWithData(res);
         
     }
@@ -55,9 +54,9 @@ public class TranslationController {
     @RequestMapping(value = "/services/en-to-zh", method = RequestMethod.GET)
     public JSONResult translateENToZh(@RequestParam(name = "word",required = true) String word){
         YoudaoTranslationResult translation = translateEN(word);
-        if (translation.basic==null){
-            return JSONResult.successWithData(new HashMap<>());
-        }
+        // if (translation.basic==null){
+        //     return JSONResult.successWithData(new HashMap<>());
+        // }
         EN2CNResult res = new EN2CNResult(word, translation.basic.phonetic, translation.exampleSentences);
         return JSONResult.successWithData(res);
     }
@@ -130,6 +129,20 @@ public class TranslationController {
             this.cnExampleSentence = cnExampleSentence;
         }
         
+    }
+
+    public class WebDictResult {
+        public String tSpeakUrl;
+        public String requestId;
+        public String query;
+        public List<String> translation;
+        public String errorCode;
+        public String l;//源语言和目标语言
+        public Boolean isWord;
+        public String speakUrl;
+        public Map<String,String> mTerminalDict;
+        public Map<String,String> webdict;
+        public Map<String,String> dict;
     }
 
     private static final String APP_KEY = "REPLACED_YOUDAO_APP_KEY";
@@ -307,14 +320,45 @@ public class TranslationController {
             .method("GET", null)
             .build();
         try {
+            //获取基础结果
             Response response = client.newCall(request).execute();
             String res = response.body().string();
-            return JSON.parseObject(res,new TypeReference<YoudaoTranslationResult>(){});
+            WebDictResult res1 = JSON.parseObject(res,new TypeReference<WebDictResult>(){});
+            //获取webdict结果获取音标
+            String webDictUrl = res1.webdict.get("url");
+            request = new Request.Builder().url(webDictUrl).method("GET", null).build();
+            String res2 = client.newCall(request).execute().body().string();
+            Matcher matcher = Pattern
+                            .compile("<span class=\"phonetic\">\\[(.*?)\\]</span>")
+                            .matcher(res2);
+            String find = matcher.find()?matcher.group(1):"";
+            //获取例句结果
+            String exampleSentenceUrl = "https://mobile.youdao.com/singledict?q="
+                                    + res1.query
+                                    +"&dict=blng_sents_part&le=eng&more=false";
+            request = new Request.Builder().url(exampleSentenceUrl).method("GET", null).build();
+            String exampleSentenceRes = client.newCall(request).execute().body().string();
+            Document document = Jsoup.parse(exampleSentenceRes);
+            
+            Elements cols = document.getElementsByClass("col2");
+            List<ExampleSentencesResult> exampleSentencesResults = new ArrayList<>();
+            for (Element ele : cols) {
+                exampleSentencesResults.add(
+                    new ExampleSentencesResult(
+                        ele.getElementsByTag("p").first().text(),
+                        ele.getElementsByClass("grey").text()
+                    )
+                );
+            }
+            YoudaoTranslationResult res3 = JSON.parseObject(res,new TypeReference<YoudaoTranslationResult>(){});
+            BasicResult basic = new BasicResult();
+            basic.phonetic = "["+find+"]";
+            res3.basic= basic;
+            res3.exampleSentences = exampleSentencesResults;
+            return res3;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
-
-
     }
 }
