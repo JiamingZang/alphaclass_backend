@@ -41,4 +41,16 @@ public class TokenUtils {
         }
         return null;
     }
+
+    /**
+     * 校验当前登录用户是否为指定资源所有者：未登录或非所有者时返回 null，
+     * 由 Controller 统一转为 401 响应（替代各处重复的 getCurrentUser + 名字比对）。
+     */
+    public User requireOwner(String owner) {
+        User user = getCurrentUser();
+        if (user == null || !owner.equals(user.getUsername())) {
+            return null;
+        }
+        return user;
+    }
 }

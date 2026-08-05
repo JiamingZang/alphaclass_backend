@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.KeywordService;
@@ -33,8 +32,7 @@ public class KeywordController {
     /** 新增关键词（需登录，仅课程创建者可操作） */
     @RequestMapping(value = "/courses/{owner}/{course}/keywords",method = RequestMethod.POST)
     public JSONResult addKeywordByCourse(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
-        User user = tokenUtils.getCurrentUser();
-        if (user == null || !owner.equals(user.getUsername())) {
+        if (tokenUtils.requireOwner(owner) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
         Map<String, Object> result = service.addKeywordByCourse(owner, course, params);
@@ -44,8 +42,7 @@ public class KeywordController {
     /** 删除关键词（需登录，仅课程创建者可操作） */
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}",method = RequestMethod.DELETE)
     public JSONResult deleteKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword) {
-        User user = tokenUtils.getCurrentUser();
-        if (user == null || !owner.equals(user.getUsername())) {
+        if (tokenUtils.requireOwner(owner) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
         service.deleteKeywordById(owner, course, keyword);
@@ -60,8 +57,7 @@ public class KeywordController {
     /** 修改关键词（需登录，仅课程创建者可操作） */
     @RequestMapping(value = "/courses/{owner}/{course}/{keyword}",method = RequestMethod.PUT)
     public JSONResult modifyKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword,@RequestBody Map<String, Object> params) {
-        User user = tokenUtils.getCurrentUser();
-        if (user == null || !owner.equals(user.getUsername())) {
+        if (tokenUtils.requireOwner(owner) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
         return JSONResult.successWithData(service.modifyKeywordByCourse(owner, course, keyword, params));
