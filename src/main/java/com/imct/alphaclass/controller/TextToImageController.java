@@ -20,22 +20,24 @@ import com.imct.alphaclass.utils.TokenUtils;
 public class TextToImageController {
 
     private final TextToImageService service;
+    private final TokenUtils tokenUtils;
 
-    public TextToImageController(TextToImageService service) {
+    public TextToImageController(TextToImageService service, TokenUtils tokenUtils) {
         this.service = service;
+        this.tokenUtils = tokenUtils;
     }
 
     /** 文生图：返回图片 id/url 及落库信息 */
     @RequestMapping(value = "/services/text-to-image/generate-image", method = RequestMethod.POST)
     public JSONResult generateImage(@RequestBody Map<String, Object> params) throws com.aliyuncs.exceptions.ClientException {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.generateImage(params.get("prompt").toString(), user.getId()));
     }
 
     /** 当前用户的文生图历史 */
     @RequestMapping(value = "/services/text-to-image/history", method = RequestMethod.GET)
     public JSONResult getHistory() {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }
 

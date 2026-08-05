@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -33,6 +32,9 @@ class UserControllerTest {
 
     @MockBean
     private UserService service;
+
+    @MockBean
+    private TokenUtils tokenUtils;
 
     private String loginJson() {
         return "{\"username\":\"alice\",\"password\":\"secret\",\"role\":\"teacher\"}";
@@ -95,14 +97,12 @@ class UserControllerTest {
         u.put("username", "alice");
         u.put("password", "secret");
         when(service.login(any(User.class))).thenReturn(u);
+        when(tokenUtils.getToken(anyString(), anyString())).thenReturn("fake-jwt-token");
 
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(() -> TokenUtils.getToken(anyString(), anyString())).thenReturn("fake-jwt-token");
-            mockMvc.perform(post("/users/actions/login").contentType(MediaType.APPLICATION_JSON).content(loginJson()))
+        mockMvc.perform(post("/users/actions/login").contentType(MediaType.APPLICATION_JSON).content(loginJson()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value("1"))
                     .andExpect(jsonPath("$.token").value("fake-jwt-token"));
-        }
     }
 
     @Test

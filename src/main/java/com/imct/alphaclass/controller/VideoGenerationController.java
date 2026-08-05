@@ -21,29 +21,31 @@ import com.imct.alphaclass.utils.TokenUtils;
 public class VideoGenerationController {
 
     private final VideoGenerationService service;
+    private final TokenUtils tokenUtils;
 
-    public VideoGenerationController(VideoGenerationService service) {
+    public VideoGenerationController(VideoGenerationService service, TokenUtils tokenUtils) {
         this.service = service;
+        this.tokenUtils = tokenUtils;
     }
 
     /** 文生视频：提交任务，返回 id/task_status */
     @RequestMapping(value = "/services/generate-video/text-to-video", method = RequestMethod.POST)
     public JSONResult textToVideo(@RequestBody Map<String, Object> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.textToVideo(params, user.getId()));
     }
 
     /** 图生视频：提交任务，返回 id/task_status */
     @RequestMapping(value = "/services/generate-video/image-to-video", method = RequestMethod.POST)
     public JSONResult imageToVideo(@RequestBody Map<String, Object> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.imageToVideo(params, user.getId()));
     }
 
     /** 当前用户的视频生成历史（处理中任务实时轮询更新） */
     @RequestMapping(value = "/services/generate-video/history", method = RequestMethod.GET)
     public JSONResult getHistory() {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }
 

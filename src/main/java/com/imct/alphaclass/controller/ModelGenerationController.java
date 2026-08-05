@@ -21,22 +21,24 @@ import com.imct.alphaclass.utils.TokenUtils;
 public class ModelGenerationController {
 
     private final ModelGenerationService service;
+    private final TokenUtils tokenUtils;
 
-    public ModelGenerationController(ModelGenerationService service) {
+    public ModelGenerationController(ModelGenerationService service, TokenUtils tokenUtils) {
         this.service = service;
+        this.tokenUtils = tokenUtils;
     }
 
     /** 文生 3D 模型：提交任务，返回 request_id/job_id */
     @RequestMapping(value = "/services/generate-model/text-to-model", method = RequestMethod.POST)
     public JSONResult textToModel(@RequestBody Map<String, Object> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.textToModel(params, user.getId()));
     }
 
     /** 图生 3D 模型：提交任务，返回 request_id/job_id */
     @RequestMapping(value = "/services/generate-model/image-to-model", method = RequestMethod.POST)
     public JSONResult imageToModel(@RequestBody Map<String, Object> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.imageToModel(params, user.getId()));
     }
 
@@ -50,7 +52,7 @@ public class ModelGenerationController {
     /** 当前用户的模型生成历史 */
     @RequestMapping(value = "/services/generate-model/history", method = RequestMethod.GET)
     public JSONResult getHistory() {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }
 

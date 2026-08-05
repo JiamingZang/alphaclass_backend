@@ -24,15 +24,14 @@ public class JSONResult<T> extends ResponseEntity<String> {
         super(JSON.toJSONString(data,SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue, SerializerFeature.WriteDateUseDateFormat),num2HttpStatus(code));
     }
 
+    /** 数字 code 映射 HTTP 状态；无法解析（非数字）时回退 500，未匹配时 404 */
     public static HttpStatus num2HttpStatus(String code) {
-        HttpStatus status = HttpStatus.NOT_FOUND;
-        for (HttpStatus httpStatus : HttpStatus.values()) {
-            boolean b = Integer.parseInt(code) == httpStatus.value();
-            if (b) {
-                return httpStatus;
-            }
+        try {
+            HttpStatus status = HttpStatus.resolve(Integer.parseInt(code));
+            return status == null ? HttpStatus.NOT_FOUND : status;
+        } catch (NumberFormatException e) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
         }
-        return status;
     }
 
     public static <T> JSONResult failWithMsg(String code,String msg) {

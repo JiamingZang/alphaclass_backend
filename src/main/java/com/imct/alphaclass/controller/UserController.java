@@ -20,9 +20,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 @RestController
 public class UserController {
     private final UserService service;
+    private final TokenUtils tokenUtils;
 
-    public UserController(UserService service) {
+    public UserController(UserService service, TokenUtils tokenUtils) {
         this.service = service;
+        this.tokenUtils = tokenUtils;
     }
 
     @RequestMapping(value = "/users",method = RequestMethod.GET)
@@ -53,7 +55,7 @@ public class UserController {
     public JSONResult login(@RequestBody User user){
         Map<String,Object> result = service.login(user);
         if (result!=null) {
-            String token = TokenUtils.getToken(result.get("id").toString(), result.get("password").toString());
+            String token = tokenUtils.getToken(result.get("id").toString(), result.get("password").toString());
             result.put("token", token);
             return JSONResult.successWithData(result);
         }else{
@@ -64,7 +66,7 @@ public class UserController {
     /** 修改密码（需登录）：旧密码校验通过后更新，响应携带新 token 用密码 */
     @RequestMapping(value = "/user/actions/change-password", method = RequestMethod.POST)
     public JSONResult changePassword(@RequestBody Map<String, String> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         if (user != null) {
             Map<String, Object> result = service.changePassword(user.getUsername(), params);
             if (result != null) {
@@ -77,7 +79,7 @@ public class UserController {
     /** 修改昵称（需登录） */
     @RequestMapping(value = "/user/actions/change-profile", method = RequestMethod.POST)
     public JSONResult changeProfile(@RequestBody Map<String, String> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         if (user != null) {
             Map<String, Object> result = service.changeProfile(user.getUsername(), params);
             if (result != null) {

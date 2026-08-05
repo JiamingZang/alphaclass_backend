@@ -19,9 +19,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 @RestController
 public class AssetController {
     private final AssetService service;
+    private final TokenUtils tokenUtils;
 
-    public AssetController(AssetService service) {
+    public AssetController(AssetService service, TokenUtils tokenUtils) {
         this.service = service;
+        this.tokenUtils = tokenUtils;
     }
 
     @RequestMapping(value = "/user/assets", method = RequestMethod.GET)
@@ -29,7 +31,7 @@ public class AssetController {
         @RequestParam(value = "page", required = false, defaultValue = "1") int page,
         @RequestParam(value = "perpage", required = false, defaultValue = "5") int perpage,
         @RequestParam(name = "type", required = false) String type) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         if (user == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }
@@ -39,7 +41,7 @@ public class AssetController {
     // 参数为 Map 类型以便前端直接传 JSON
     @RequestMapping(value = "/user/assets", method = RequestMethod.POST)
     public JSONResult addAsset(@RequestBody Map<String, Object> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         if (user == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }

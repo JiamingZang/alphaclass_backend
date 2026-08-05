@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -28,6 +27,7 @@ import com.imct.alphaclass.utils.TokenUtils;
 
 /**
  * AnchorController 路由与响应契约测试（MockMvc，不依赖数据库）。
+ * 覆盖：owner 校验（POST/PUT/DELETE 仅课程创建者可操作）。
  */
 @WebMvcTest(AnchorController.class)
 class AnchorControllerTest {
@@ -41,6 +41,9 @@ class AnchorControllerTest {
     @MockBean
     private UserService userService;
 
+    @MockBean
+    private TokenUtils tokenUtils;
+
     private User currentUser() {
         User user = new User();
         user.setId(1);
@@ -49,7 +52,16 @@ class AnchorControllerTest {
         return user;
     }
 
+    private User otherUser() {
+        User user = new User();
+        user.setId(2);
+        user.setUsername("bob");
+        user.setPassword("secret");
+        return user;
+    }
+
     private String buildToken() {
+        // JwtInterceptor 会用 audience 中的 userId 查用户并验证签名
         when(userService.getById(1)).thenReturn(currentUser());
         return JWT.create().withAudience("1")
                 .withExpiresAt(new Date(System.currentTimeMillis() + 3600_000))
@@ -76,43 +88,37 @@ class AnchorControllerTest {
         result.put("id", "400");
         result.put("name", "anchor1");
         when(service.addAnchorByCourse(eq("alice"), eq("math"), anyMap())).thenReturn(result);
+        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
 
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(TokenUtils::getCurrentUser).thenReturn(currentUser());
-            mockMvc.perform(post("/courses/alice/math/anchors")
-                    .header("token", buildToken())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"anchor1\",\"pos\":{\"pos_x\":\"1.0\",\"pos_y\":\"2.0\",\"pos_z\":\"3.0\"},"
-                            + "\"euler\":{\"euler_x\":\"10.0\",\"euler_y\":\"20.0\",\"euler_z\":\"30.0\"}}"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value("400"));
-        }
+        mockMvc.perform(post("/courses/alice/math/anchors")
+                .header("token", buildToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"anchor1\",\"pos\":{\"pos_x\":\"1.0\",\"pos_y\":\"2.0\",\"pos_z\":\"3.0\"},"
+                        + "\"euler\":{\"euler_x\":\"10.0\",\"euler_y\":\"20.0\",\"euler_z\":\"30.0\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("400"));
     }
 
     @Test
     void addAnchorByCourse_notOwner_returns401() throws Exception {
-        User other = new User();
-        other.setId(2);
-        other.setUsername("bob");
-        other.setPassword("secret");
+        when(tokenUtils.getCurrentUser()).thenReturn(otherUser());
 
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(TokenUtils::getCurrentUser).thenReturn(other);
-            mockMvc.perform(post("/courses/alice/math/anchors")
-                    .header("token", buildToken())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"anchor1\"}"))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.message").value("仅课程创建者可修改"));
-        }
+        mockMvc.perform(post("/courses/alice/math/anchors")
+                .header("token", buildToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"anchor1\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("仅课程创建者可修改"));
+        verify(service, never()).addAnchorByCourse(anyString(), anyString(), anyMap());
     }
 
     @Test
-    void modifyAnchorByCourse_returnsUpdatedAnchor() throws Exception {
+    void modifyAnchorByCourse_ownerOnly_returnsUpdatedAnchor() throws Exception {
         Map<String, Object> result = new HashMap<>();
         result.put("id", "400");
         result.put("name", "renamed");
         when(service.modifyAnchorById(eq("alice"), eq("math"), eq(400), anyMap())).thenReturn(result);
+        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
 
         mockMvc.perform(put("/courses/alice/math/anchors/400")
                 .header("token", buildToken())
@@ -123,16 +129,41 @@ class AnchorControllerTest {
     }
 
     @Test
-    void deleteAnchorByCourse_success_returns204() throws Exception {
+    void modifyAnchorByCourse_notOwner_returns401() throws Exception {
+        when(tokenUtils.getCurrentUser()).thenReturn(otherUser());
+
+        mockMvc.perform(put("/courses/alice/math/anchors/400")
+                .header("token", buildToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"renamed\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("仅课程创建者可修改"));
+        verify(service, never()).modifyAnchorById(anyString(), anyString(), anyInt(), anyMap());
+    }
+
+    @Test
+    void deleteAnchorByCourse_ownerOnly_success_returns204() throws Exception {
         when(service.deleteAnchorById("alice", "math", 400)).thenReturn(true);
+        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
 
         mockMvc.perform(delete("/courses/alice/math/anchors/400").header("token", buildToken()))
                 .andExpect(status().isNoContent());
     }
 
     @Test
+    void deleteAnchorByCourse_notOwner_returns401() throws Exception {
+        when(tokenUtils.getCurrentUser()).thenReturn(otherUser());
+
+        mockMvc.perform(delete("/courses/alice/math/anchors/400").header("token", buildToken()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("仅课程创建者可删除"));
+        verify(service, never()).deleteAnchorById(anyString(), anyString(), anyInt());
+    }
+
+    @Test
     void deleteAnchorByCourse_fail_returns404() throws Exception {
         when(service.deleteAnchorById("alice", "math", 400)).thenReturn(false);
+        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
 
         mockMvc.perform(delete("/courses/alice/math/anchors/400").header("token", buildToken()))
                 .andExpect(status().isNotFound())

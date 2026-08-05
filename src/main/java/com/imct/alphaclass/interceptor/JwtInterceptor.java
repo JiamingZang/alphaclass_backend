@@ -12,7 +12,6 @@ import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -21,10 +20,13 @@ import javax.servlet.http.HttpServletResponse;
 
 public class JwtInterceptor implements HandlerInterceptor {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler){
+    public JwtInterceptor(UserService userService) {
+        this.userService = userService;
+    }
+
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String token = request.getHeader("token");// 从 http 请求头中取出 token
         if (Method.GET.toString().equals(request.getMethod())) {
             return true;
@@ -35,25 +37,31 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
 
         if (StrUtil.isBlank(token)) {
-            throw new ServiceException(Constants.CODE_401,"无token,请重新登陆");
+            throw new ServiceException(Constants.CODE_401, "无token,请重新登陆");
         }
 
         String userId;
         try {
             userId = JWT.decode(token).getAudience().get(0);
-        } catch (JWTDecodeException j) {
-            throw new ServiceException(Constants.CODE_401,"token验证失败,请重新登录");
+        } catch (JWTDecodeException | IndexOutOfBoundsException j) {
+            throw new ServiceException(Constants.CODE_401, "token验证失败,请重新登录");
         }
-        User user = userService.getById(Integer.valueOf(userId));
+
+        User user;
+        try {
+            user = userService.getById(Integer.valueOf(userId));
+        } catch (NumberFormatException e) {
+            throw new ServiceException(Constants.CODE_401, "token验证失败,请重新登录");
+        }
         if (user == null) {
-            throw new ServiceException(Constants.CODE_401,"用户不存在，请重新登录");
+            throw new ServiceException(Constants.CODE_401, "用户不存在，请重新登录");
         }
         // 验证 token
         JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(user.getPassword())).build();
         try {
             jwtVerifier.verify(token);
         } catch (JWTVerificationException e) {
-            throw new ServiceException(Constants.CODE_401,"token验证失败,请重新登录");
+            throw new ServiceException(Constants.CODE_401, "token验证失败,请重新登录");
         }
         return true;
 

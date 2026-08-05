@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -41,6 +40,9 @@ class CourseControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private TokenUtils tokenUtils;
 
     private User currentUser() {
         User user = new User();
@@ -123,15 +125,13 @@ class CourseControllerTest {
         when(service.addCourse(eq("alice"), any(Course.class))).thenReturn(result);
         when(userService.getById(1)).thenReturn(currentUser());
 
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(TokenUtils::getCurrentUser).thenReturn(currentUser());
-            mockMvc.perform(post("/user/courses")
+        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
+        mockMvc.perform(post("/user/courses")
                     .header("token", buildToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"math\",\"description\":\"d\",\"cover_url\":\"http://x\"}"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value("10"));
-        }
     }
 
     @Test
@@ -150,15 +150,13 @@ class CourseControllerTest {
         result.put("name", "physics");
         when(service.modifyByUserAndName(eq("alice"), eq("math"), anyMap())).thenReturn(result);
 
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(TokenUtils::getCurrentUser).thenReturn(currentUser());
-            mockMvc.perform(put("/courses/alice/math")
+        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
+        mockMvc.perform(put("/courses/alice/math")
                     .header("token", buildToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"physics\"}"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value("10"));
-        }
     }
 
     @Test
@@ -168,25 +166,36 @@ class CourseControllerTest {
         other.setUsername("bob");
         other.setPassword("secret");
 
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(TokenUtils::getCurrentUser).thenReturn(other);
-            mockMvc.perform(put("/courses/alice/math")
+        when(tokenUtils.getCurrentUser()).thenReturn(other);
+        mockMvc.perform(put("/courses/alice/math")
                     .header("token", buildToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"physics\"}"))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("仅课程创建者可修改"));
-        }
     }
 
     @Test
     void deleteByUserAndName_returns204NoBody() throws Exception {
         when(userService.getById(1)).thenReturn(currentUser());
+        when(tokenUtils.getCurrentUser()).thenReturn(currentUser());
 
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(TokenUtils::getCurrentUser).thenReturn(currentUser());
-            mockMvc.perform(delete("/courses/alice/math").header("token", buildToken()))
-                    .andExpect(status().isNoContent());
-        }
+        mockMvc.perform(delete("/courses/alice/math").header("token", buildToken()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteByUserAndName_notOwner_returns401() throws Exception {
+        User other = new User();
+        other.setId(2);
+        other.setUsername("bob");
+        other.setPassword("secret");
+        when(userService.getById(1)).thenReturn(currentUser());
+        when(tokenUtils.getCurrentUser()).thenReturn(other);
+
+        mockMvc.perform(delete("/courses/alice/math").header("token", buildToken()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("仅课程创建者可删除"));
+        verify(service, never()).deleteByUserAndName(anyString(), anyString());
     }
 }

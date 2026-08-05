@@ -21,9 +21,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 @RestController
 public class CourseController {
     private final CourseService service;
+    private final TokenUtils tokenUtils;
 
-    public CourseController(CourseService service) {
+    public CourseController(CourseService service, TokenUtils tokenUtils) {
         this.service = service;
+        this.tokenUtils = tokenUtils;
     }
 
     /** 查询用户全部课程（GET 放行，无需登录） */
@@ -35,7 +37,7 @@ public class CourseController {
     /** 新增课程（需登录，归属当前用户） */
     @RequestMapping(value =  "/user/courses", method =RequestMethod.POST)
     public JSONResult addCourse(@RequestBody Course course){
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         if (user == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }
@@ -67,7 +69,7 @@ public class CourseController {
     /** 修改课程（需登录，仅课程创建者可修改） */
     @RequestMapping(value = "/courses/{owner}/{course}",method = RequestMethod.PUT)
     public JSONResult modifyByUserAndName(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         if (user != null && owner.equals(user.getUsername())) {   
             Map<String, Object> result = service.modifyByUserAndName(owner, course,params);
             if (result!=null) {
@@ -77,14 +79,15 @@ public class CourseController {
         return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
     }
 
-    /** 删除课程（需登录） */
+    /** 删除课程（需登录，仅课程创建者可删除） */
     @RequestMapping(value = "/courses/{owner}/{course}",method = RequestMethod.DELETE)
     public JSONResult deleteByUserAndName(@PathVariable String owner, @PathVariable String course) {
-        if (TokenUtils.getCurrentUser()!=null) {
+        User user = tokenUtils.getCurrentUser();
+        if (user != null && owner.equals(user.getUsername())) {
             service.deleteByUserAndName(owner, course);
             return JSONResult.customWithStatus(Constants.CODE_204);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可删除");
         }
     }
 }

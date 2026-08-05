@@ -18,9 +18,11 @@ import com.imct.alphaclass.utils.TokenUtils;
 @RestController
 public class StudentCourseController {
     private final StudentCourseService service;
+    private final TokenUtils tokenUtils;
 
-    public StudentCourseController(StudentCourseService service) {
+    public StudentCourseController(StudentCourseService service, TokenUtils tokenUtils) {
         this.service = service;
+        this.tokenUtils = tokenUtils;
     }
 
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.GET)
@@ -28,19 +30,31 @@ public class StudentCourseController {
         return JSONResult.successWithData(service.getAllStudentsByCourse(owner, course));
     }
 
+    /** 批量添加学生（需登录，仅课程创建者可操作） */
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.POST)
-    public void addStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
+    public JSONResult addStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
+        User user = tokenUtils.getCurrentUser();
+        if (user == null || !owner.equals(user.getUsername())) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+        }
         service.addStudentsByUsername((List<String>)params.get("students"), owner, course);
+        return JSONResult.customWithStatus(Constants.CODE_204);
     }
 
+    /** 批量删除学生（需登录，仅课程创建者可操作） */
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.DELETE)
-    public void deleteStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
+    public JSONResult deleteStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
+        User user = tokenUtils.getCurrentUser();
+        if (user == null || !owner.equals(user.getUsername())) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+        }
         service.deleteStudentsByUsername((List<String>)params.get("students"), owner, course);
+        return JSONResult.customWithStatus(Constants.CODE_204);
     }
 
     @RequestMapping(value = "/user/register-courses",method = RequestMethod.GET)
     public JSONResult getLoginUserCourses() {
-        User user = TokenUtils.getCurrentUser();
+        User user = tokenUtils.getCurrentUser();
         if (user == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }

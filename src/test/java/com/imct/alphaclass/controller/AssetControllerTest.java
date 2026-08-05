@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -37,6 +36,9 @@ class AssetControllerTest {
     @MockBean
     private UserService userService;
 
+    @MockBean
+    private TokenUtils tokenUtils;
+
     @Test
     void getAllByUser_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/user/assets"))
@@ -52,11 +54,9 @@ class AssetControllerTest {
         User user = new User();
         user.setId(1);
         user.setUsername("alice");
-        try (MockedStatic<TokenUtils> mocked = mockStatic(TokenUtils.class)) {
-            mocked.when(TokenUtils::getCurrentUser).thenReturn(user);
-            mockMvc.perform(get("/user/assets"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isArray());
-        }
+        when(tokenUtils.getCurrentUser()).thenReturn(user);
+        mockMvc.perform(get("/user/assets"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 }
