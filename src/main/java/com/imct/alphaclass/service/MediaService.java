@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.imct.alphaclass.bean.Anchor;
 import com.imct.alphaclass.bean.Animation;
 import com.imct.alphaclass.bean.Keyword;
 import com.imct.alphaclass.bean.Media;
@@ -384,20 +385,27 @@ public class MediaService {
      */
     private Map<String, Object> buildMediaResponse(Media media) {
         Map<String, Object> ac = MapUtils.toMap(media);
-        // asset 嵌套（uid/deleted_at 移除，id 转字符串）
+        // asset 嵌套（uid/deleted_at 移除，id 转字符串）；资产被软删/不存在时置 null 不报错
         Map<String, Object> tempasset = null;
         if (media.getAssetid() != null) {
-            tempasset = MapUtils.toMap(assetdao.getAssetById(media.getAssetid()));
-            tempasset.remove("uid");
-            tempasset.remove("deleted_at");
-            tempasset.put("id", tempasset.get("id").toString());
+            Map<String, Object> assetRow = MapUtils.toMap(assetdao.getAssetById(media.getAssetid()));
+            if (assetRow != null) {
+                assetRow.remove("uid");
+                assetRow.remove("deleted_at");
+                assetRow.put("id", assetRow.get("id").toString());
+                tempasset = assetRow;
+            }
         }
-        // anchor 嵌套（pos/euler 收拢，cid 移除，id 转字符串）
-        Map<String, Object> tempanchor = MapUtils.toMap(anchordao.getAnchorById(media.getAnchorid()));
-        tempanchor.remove("cid");
-        tempanchor.put("pos", MapUtils.nestVec(tempanchor, "pos", "pos"));
-        tempanchor.put("euler", MapUtils.nestVec(tempanchor, "euler", "euler"));
-        tempanchor.put("id", tempanchor.get("id").toString());
+        // anchor 嵌套（pos/euler 收拢，cid 移除，id 转字符串）；锚点不存在时置 null 不报错
+        Map<String, Object> tempanchor = null;
+        Anchor anchor = anchordao.getAnchorById(media.getAnchorid());
+        if (anchor != null) {
+            tempanchor = MapUtils.toMap(anchor);
+            tempanchor.remove("cid");
+            tempanchor.put("pos", MapUtils.nestVec(tempanchor, "pos", "pos"));
+            tempanchor.put("euler", MapUtils.nestVec(tempanchor, "euler", "euler"));
+            tempanchor.put("id", tempanchor.get("id").toString());
+        }
         // color 嵌套
         Map<String, Object> tempcolor = new HashMap<String, Object>();
         tempcolor.put("r", media.getColor_r());

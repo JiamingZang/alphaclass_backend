@@ -348,6 +348,35 @@ class MediaServiceTest {
         assertEquals("part1", parts.get(0).get("name"));
     }
 
+    /** 回归：asset 软删除/anchor 缺失时列表组装不抛 NPE，对应嵌套字段置 null */
+    @Test
+    void getAllMediasByKeyword_missingAssetOrAnchor_doesNotNpe() {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", 200);
+        m.put("name", "media200");
+        m.put("type", "translation");
+        m.put("style", "default");
+        m.put("assetid", 300);
+        m.put("anchorid", 400);
+        m.put("kid", 100);
+        m.put("color_r", 1.0f);
+        m.put("color_g", 0.5f);
+        m.put("color_b", 0.25f);
+        List<Map<String, Object>> mediaList = new ArrayList<>();
+        mediaList.add(m);
+        when(dao.getAllMediasByKid(100)).thenReturn(mediaList);
+        // asset 被软删（查询返回 null）、anchor 不存在（返回 null）
+        when(assetdao.getAssetById(300)).thenReturn(null);
+        when(anchordao.getAnchorById(400)).thenReturn(null);
+        when(mediaTranslationDAO.getMediaTranslationById(200)).thenReturn(null);
+
+        List<Map<String, Object>> result = service.getAllMediasByKeyword("alice", "math", "k1");
+
+        assertEquals(1, result.size());
+        assertNull(result.get(0).get("asset"));
+        assertNull(result.get(0).get("anchor"));
+    }
+
     @Test
     void addMediaByKeyword_modelType_insertsModelAndReturnsResponse() {
         Map<String, Object> params = new HashMap<>();
