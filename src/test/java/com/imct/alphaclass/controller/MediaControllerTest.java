@@ -103,7 +103,7 @@ class MediaControllerTest {
         result.put("id", "200");
         result.put("name", "newMedia");
         when(service.addMediaByKeyword(eq("alice"), eq("math"), eq("k1"), anyMap())).thenReturn(result);
-        when(tokenUtils.getCurrentUser()).thenReturn(owner());
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
 
         mockMvc.perform(post("/courses/alice/math/k1/medias")
                 .header("token", buildToken())
@@ -125,7 +125,7 @@ class MediaControllerTest {
 
     @Test
     void deleteMediaById_returns204() throws Exception {
-        when(tokenUtils.getCurrentUser()).thenReturn(owner());
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
         mockMvc.perform(delete("/courses/alice/math/k1/medias/200").header("token", buildToken()))
                 .andExpect(status().isNoContent());
         verify(service).deleteMediaById("math", "alice", "k1", 200);
@@ -137,7 +137,7 @@ class MediaControllerTest {
         result.put("id", "200");
         result.put("name", "renamed");
         when(service.modifyMediaById(eq("math"), eq("alice"), eq("k1"), eq(200), anyMap())).thenReturn(result);
-        when(tokenUtils.getCurrentUser()).thenReturn(owner());
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
 
         mockMvc.perform(put("/courses/alice/math/k1/medias/200")
                 .header("token", buildToken())
@@ -154,7 +154,7 @@ class MediaControllerTest {
         result.put("type", "translation");
         when(service.addMediaTranslationOrWikiByKeyword(eq("alice"), eq("math"), eq("k1"), anyMap()))
                 .thenReturn(result);
-        when(tokenUtils.getCurrentUser()).thenReturn(owner());
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
 
         mockMvc.perform(post("/courses/alice/math/k1/medias/trans_or_wiki")
                 .header("token", buildToken())
@@ -168,11 +168,7 @@ class MediaControllerTest {
 
     @Test
     void modifyMediaById_notOwner_returns401() throws Exception {
-        User other = new User();
-        other.setId(2);
-        other.setUsername("bob");
-        other.setPassword("secret");
-        when(tokenUtils.getCurrentUser()).thenReturn(other);
+        when(tokenUtils.requireOwner("alice")).thenReturn(null);
 
         mockMvc.perform(put("/courses/alice/math/k1/medias/200")
                 .header("token", buildToken())

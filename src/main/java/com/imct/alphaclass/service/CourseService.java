@@ -1,6 +1,5 @@
 package com.imct.alphaclass.service;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -37,8 +36,8 @@ public class CourseService {
     public Map<String, Object> addCourse(String username,Course course){
         User user = access.requireUser(username);
         course.setUid(user.getId());
-        course.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
-        course.setUpdated_at(new Timestamp(System.currentTimeMillis()).toString());
+        course.setCreated_at(MapUtils.now());
+        course.setUpdated_at(MapUtils.now());
         dao.addCourse(course);
         Course courseResult = dao.getCourseById(course.getId());
         Map<String, Object> result = MapUtils.toMap(courseResult);
@@ -72,7 +71,7 @@ public class CourseService {
         User user = access.requireUser(username);
         dao.updateCourseByUidAndName(
             params.get("name").toString(), params.get("description").toString(), params.get("cover_url").toString(),
-            new Timestamp(System.currentTimeMillis()).toString(),user.getId(), coursename);
+            MapUtils.now(),user.getId(), coursename);
         Map<String, Object> result = getByUserAndName(username, params.get("name").toString());
         result.put("url", access.courseDetailUrl(user.getUsername(), result.get("name").toString()));
         return result;

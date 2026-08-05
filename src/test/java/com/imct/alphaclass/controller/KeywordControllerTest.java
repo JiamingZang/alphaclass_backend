@@ -80,7 +80,7 @@ class KeywordControllerTest {
         result.put("id", "101");
         result.put("keyword", "k2");
         when(service.addKeywordByCourse(eq("alice"), eq("math"), anyMap())).thenReturn(result);
-        when(tokenUtils.getCurrentUser()).thenReturn(owner());
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
 
         mockMvc.perform(post("/courses/alice/math/keywords")
                 .header("token", buildToken())
@@ -108,7 +108,7 @@ class KeywordControllerTest {
         result.put("id", "100");
         result.put("keyword", "k2");
         when(service.modifyKeywordByCourse(eq("alice"), eq("math"), eq("k1"), anyMap())).thenReturn(result);
-        when(tokenUtils.getCurrentUser()).thenReturn(owner());
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
 
         mockMvc.perform(put("/courses/alice/math/k1")
                 .header("token", buildToken())
@@ -120,7 +120,7 @@ class KeywordControllerTest {
 
     @Test
     void deleteKeywordByCourse_returns204() throws Exception {
-        when(tokenUtils.getCurrentUser()).thenReturn(owner());
+        when(tokenUtils.requireOwner("alice")).thenReturn(owner());
         mockMvc.perform(delete("/courses/alice/math/k1").header("token", buildToken()))
                 .andExpect(status().isNoContent());
         verify(service).deleteKeywordById("alice", "math", "k1");
@@ -128,11 +128,7 @@ class KeywordControllerTest {
 
     @Test
     void addKeywordByCourse_notOwner_returns401() throws Exception {
-        User other = new User();
-        other.setId(2);
-        other.setUsername("bob");
-        other.setPassword("secret");
-        when(tokenUtils.getCurrentUser()).thenReturn(other);
+        when(tokenUtils.requireOwner("alice")).thenReturn(null);
 
         mockMvc.perform(post("/courses/alice/math/keywords")
                 .header("token", buildToken())

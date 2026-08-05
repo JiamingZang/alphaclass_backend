@@ -1,31 +1,28 @@
 package com.imct.alphaclass.service;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.aliyun.oss.ClientException;
-import com.aliyun.oss.OSS;
-import com.aliyun.oss.OSSClientBuilder;
-import com.aliyun.oss.OSSException;
-import com.aliyun.oss.model.PutObjectRequest;
 import com.imct.alphaclass.bean.ServiceUsage;
 import com.imct.alphaclass.bean.TextToImageResult;
+import com.imct.alphaclass.common.AiConstants;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.ServiceDAO;
 import com.imct.alphaclass.exception.ServiceException;
+import com.imct.alphaclass.utils.HttpClients;
+import com.imct.alphaclass.utils.MapUtils;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -41,43 +38,37 @@ import okhttp3.Response;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TextToImageService {
 
     private final ServiceDAO servicedao;
+    private final OssService ossService;
 
     @Value("${ai.baidu.client-id}")
     private String baiduClientId;
     @Value("${ai.baidu.client-secret}")
     private String baiduClientSecret;
-    @Value("${ai.oss.endpoint}")
-    private String ossEndpoint;
-    @Value("${ai.oss.bucket}")
-    private String ossBucket;
-    @Value("${ai.oss.access-key-id}")
-    private String ossAccessKeyId;
-    @Value("${ai.oss.access-key-secret}")
-    private String ossAccessKeySecret;
 
     /**
      * 文生图主流程：取百度 token → 调 SD-XL → base64 解码 → 上传 OSS → 落库。
      * 生成失败（超时/解码失败）时抛 {@link ServiceException}（503），并记录失败的使用记录。
      */
-    public Map<String, Object> generateImage(String prompt, int userId) throws com.aliyuncs.exceptions.ClientException {
+    public Map<String, Object> generateImage(String prompt, int userId) {
         String base64String = generateImageRequest(getBaiduAccessToken(), prompt);
-        if (base64String.equals("timeout")) {
+        if (AiConstants.TIMEOUT_MARK.equals(base64String)) {
             recordUsage(userId, 0);
-            throw new ServiceException("503", base64String);
+            throw new ServiceException(Constants.CODE_503, base64String);
         }
         byte[] result;
         try {
             result = Base64.getDecoder().decode(base64String.getBytes());
         } catch (Exception e) {
             recordUsage(userId, 0);
-            throw new ServiceException("503", base64String);
+            throw new ServiceException(Constants.CODE_503, base64String);
         }
-        UUID randomUUID = UUID.randomUUID();
-        String filename = randomUUID.toString().replaceAll("-", "");
-        String url = uploadBytesToOss(result, filename);
+        String filename = UUID.randomUUID().toString().replaceAll("-", "");
+        String objectName = AiConstants.OSS_IMAGE_DIR + filename + ".jpg";
+        String url = ossService.urlOf(ossService.uploadBytes(result, objectName));
         ServiceUsage serviceUsage = recordUsage(userId, 1);
         TextToImageResult serviceResult = new TextToImageResult();
         serviceResult.setPrompt(prompt);
@@ -85,7 +76,7 @@ public class TextToImageService {
         serviceResult.setThumbnail_url(url);
         serviceResult.setSize(result.length);
         serviceResult.setUsage_id(serviceUsage.getId());
-        serviceResult.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
+        serviceResult.setCreated_at(MapUtils.now());
         serviceResult.setIs_deleted(0);
         servicedao.addResult(serviceResult);
 
@@ -108,12 +99,12 @@ public class TextToImageService {
         servicedao.deleteTextToImageResultById(id);
     }
 
-    /** 记录服务使用情况（service_id=1 文生图），失败时同样记录 */
+    /** 记录服务使用情况（文生图），失败时同样记录 */
     private ServiceUsage recordUsage(int userId, int isSuccessful) {
         ServiceUsage serviceUsage = new ServiceUsage();
         serviceUsage.setUser_id(userId);
-        serviceUsage.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
-        serviceUsage.setService_id(1);
+        serviceUsage.setCreated_at(MapUtils.now());
+        serviceUsage.setService_id(AiConstants.SERVICE_ID_TEXT_TO_IMAGE);
         serviceUsage.setIs_successful(isSuccessful);
         servicedao.addUsage(serviceUsage);
         return serviceUsage;
@@ -149,35 +140,31 @@ public class TextToImageService {
         public int total_tokens;
     }
 
-    /** 获取百度 OAuth access token */
+    /** 获取百度 OAuth access token（失败时返回错误信息文本，由主流程兜底为 503） */
     private String getBaiduAccessToken() {
-        String URL = "https://aip.baidubce.com/oauth/2.0/token" + "?grant_type=client_credentials"
+        String url = AiConstants.BAIDU_TOKEN_URL + "?grant_type=client_credentials"
                 + "&client_id=" + baiduClientId + "&client_secret=" + baiduClientSecret;
-        OkHttpClient client = new OkHttpClient().newBuilder().build();
-        Request request = new Request.Builder().url(URL).method("GET", null).build();
+        OkHttpClient client = HttpClients.defaultClient();
+        Request request = new Request.Builder().url(url).method("GET", null).build();
         try {
             Response response = client.newCall(request).execute();
             String res = response.body().string();
             return JSON.parseObject(res, new TypeReference<TokenAccessResult>() {
             }).access_token;
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("获取百度 access_token 失败: {}", e.getMessage());
             return e.getMessage();
         }
     }
 
-    /** 调用文心 SD-XL 文生图，返回图片 base64（超时返回 "timeout"） */
+    /** 调用文心 SD-XL 文生图，返回图片 base64（超时返回 timeout 标记） */
     private String generateImageRequest(String accessToken, String prompt) {
-        String URL = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/text2image/sd_xl?access_token="
-                + accessToken;
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .build();
+        String url = AiConstants.BAIDU_SDXL_URL + "?access_token=" + accessToken;
+        OkHttpClient client = HttpClients.timeoutClient(60, 120);
         String json = "{\"prompt\":\"" + prompt + "\",\"size\":\"1024x576\"}";
         RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
         Request request = new Request.Builder()
-                .url(URL)
+                .url(url)
                 .header("Content-Type", "application/json")
                 .method("POST", body)
                 .build();
@@ -195,37 +182,9 @@ public class TextToImageService {
             return tempres;
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().equals("timeout")) {
-                return "timeout";
+                return AiConstants.TIMEOUT_MARK;
             }
             return tempres;
         }
-    }
-
-    /** 上传图片字节流到 OSS，返回可访问 URL */
-    private String uploadBytesToOss(byte[] bytes, String filename) throws com.aliyuncs.exceptions.ClientException {
-        String objectName = "assets/aigc_images/" + filename + ".jpg";
-        OSS ossClient = new OSSClientBuilder().build(ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
-        try {
-            PutObjectRequest putObjectRequest = new PutObjectRequest(ossBucket, objectName,
-                    new ByteArrayInputStream(bytes));
-            ossClient.putObject(putObjectRequest);
-        } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
-        } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
-        } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
-            }
-        }
-        return "https://" + ossBucket + "." + ossEndpoint + "/" + objectName;
     }
 }

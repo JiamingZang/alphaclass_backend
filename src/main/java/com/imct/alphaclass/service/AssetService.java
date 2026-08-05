@@ -1,6 +1,5 @@
 package com.imct.alphaclass.service;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -72,8 +71,8 @@ public class AssetService {
 
         User user = access.requireUser(username);
         asset.setUid(user.getId());
-        asset.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
-        asset.setUpdated_at(new Timestamp(System.currentTimeMillis()).toString());
+        asset.setCreated_at(MapUtils.now());
+        asset.setUpdated_at(MapUtils.now());
         dao.addAsset(asset);
         Asset assetResult = dao.getAssetById(asset.getId());
 
@@ -82,13 +81,13 @@ public class AssetService {
 
     /** 删除资产（软删除）：仅限资产归属用户，不归属时返回 false */
     public boolean deleteById(int uid, int id) {
-        return dao.deleteAssetByIdAndUid(new Timestamp(System.currentTimeMillis()).toString(), id, uid) > 0;
+        return dao.deleteAssetByIdAndUid(MapUtils.now(), id, uid) > 0;
     }
 
     /** 修改资产名称（仅支持 name）：仅限资产归属用户，不归属/不存在时返回 null */
     public Map<String, Object> modifyById(int uid, int id, Map<String, Object> params) {
         if (params.get("name") != null) {
-            dao.updateAssetByIdAndUid(params.get("name").toString(), new Timestamp(System.currentTimeMillis()).toString(), id, uid);
+            dao.updateAssetByIdAndUid(params.get("name").toString(), MapUtils.now(), id, uid);
         }
         Asset assetResult = dao.getAssetById(id);
         if (assetResult == null || assetResult.getUid() != uid) {

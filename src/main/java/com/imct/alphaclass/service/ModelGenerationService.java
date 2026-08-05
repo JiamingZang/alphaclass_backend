@@ -1,22 +1,17 @@
 package com.imct.alphaclass.service;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,12 +19,13 @@ import org.springframework.stereotype.Service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.aliyun.oss.OSS;
-import com.aliyun.oss.OSSClientBuilder;
-import com.aliyun.oss.model.PutObjectRequest;
 import com.imct.alphaclass.bean.GenModelResult;
+import com.imct.alphaclass.common.AiConstants;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.ServiceDAO;
 import com.imct.alphaclass.exception.ServiceException;
+import com.imct.alphaclass.utils.HttpClients;
+import com.imct.alphaclass.utils.MapUtils;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.common.profile.ClientProfile;
@@ -52,59 +48,53 @@ import okhttp3.Response;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ModelGenerationService {
 
     private final ServiceDAO servicedao;
+    private final AiUsageGuard usageGuard;
+    private final OssService ossService;
 
     @Value("${ai.tencent.secret-id}")
     private String tencentSecretId;
     @Value("${ai.tencent.secret-key}")
     private String tencentSecretKey;
-    @Value("${ai.oss.endpoint}")
-    private String ossEndpoint;
-    @Value("${ai.oss.bucket}")
-    private String ossBucket;
-    @Value("${ai.oss.access-key-id}")
-    private String ossAccessKeyId;
-    @Value("${ai.oss.access-key-secret}")
-    private String ossAccessKeySecret;
-
-    /** 当日生成次数上限 */
-    private static final int DAILY_GENERATION_LIMIT = 10;
 
     /** 文生 3D 模型：提交腾讯云任务并落库，返回任务信息 */
     public Map<String, Object> textToModel(Map<String, Object> params, int userId) {
-        checkExceedGenerationCount(userId);
+        usageGuard.checkExceedGenerationCount(userId);
         GenModelResult res = new GenModelResult();
         res.setUser_id(userId);
         res.setPrompt(params.get("prompt").toString());
-        String resultFormat = params.containsKey("result_format") ? params.get("result_format").toString() : "GLB";
+        String resultFormat = params.containsKey("result_format") ? params.get("result_format").toString()
+                : AiConstants.RESULT_FORMAT_GLB;
         Boolean enablePBR = params.containsKey("enable_pbr") ? (Boolean) params.get("enable_pbr") : null;
         Boolean enableGeometry = params.containsKey("enable_geometry") ? (Boolean) params.get("enable_geometry") : null;
         try {
             SubmitHunyuanTo3DRapidJobResponse result = generateModelRequest(res.getPrompt(), null, resultFormat,
                     enablePBR, enableGeometry);
-            return saveModelTask(res, result, "textToModel");
+            return saveModelTask(res, result, AiConstants.TYPE_TEXT_TO_MODEL);
         } catch (TencentCloudSDKException e) {
-            throw new ServiceException("403", e.toString());
+            throw new ServiceException(Constants.CODE_403, e.toString());
         }
     }
 
     /** 图生 3D 模型：提交腾讯云任务并落库，返回任务信息 */
     public Map<String, Object> imageToModel(Map<String, Object> params, int userId) {
-        checkExceedGenerationCount(userId);
+        usageGuard.checkExceedGenerationCount(userId);
         GenModelResult res = new GenModelResult();
         res.setUser_id(userId);
         res.setPrompt_image_url(params.get("image_url").toString());
-        String resultFormat = params.containsKey("result_format") ? params.get("result_format").toString() : "GLB";
+        String resultFormat = params.containsKey("result_format") ? params.get("result_format").toString()
+                : AiConstants.RESULT_FORMAT_GLB;
         Boolean enablePBR = params.containsKey("enable_pbr") ? (Boolean) params.get("enable_pbr") : null;
         Boolean enableGeometry = params.containsKey("enable_geometry") ? (Boolean) params.get("enable_geometry") : null;
         try {
             SubmitHunyuanTo3DRapidJobResponse result = generateModelRequest(null, res.getPrompt_image_url(),
                     resultFormat, enablePBR, enableGeometry);
-            return saveModelTask(res, result, "imageToModel");
+            return saveModelTask(res, result, AiConstants.TYPE_IMAGE_TO_MODEL);
         } catch (TencentCloudSDKException e) {
-            throw new ServiceException("403", e.toString());
+            throw new ServiceException(Constants.CODE_403, e.toString());
         }
     }
 
@@ -113,14 +103,14 @@ public class ModelGenerationService {
             String type) {
         res.setJob_id(result.getJobId());
         res.setRequest_id(result.getRequestId());
-        res.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
-        res.setTask_status("GENERATING");
+        res.setCreated_at(MapUtils.now());
+        res.setTask_status(AiConstants.TASK_GENERATING);
         res.setType(type);
         servicedao.addModelResult(res);
         Map<String, Object> resp = new HashMap<String, Object>();
         resp.put("request_id", res.getRequest_id());
         resp.put("job_id", res.getJob_id());
-        resp.put("task_status", "GENERATING");
+        resp.put("task_status", AiConstants.TASK_GENERATING);
         return resp;
     }
 
@@ -150,28 +140,10 @@ public class ModelGenerationService {
         servicedao.deleteModelResultById(id);
     }
 
-    /** 当日生成次数限制：超过上限则拒绝新任务 */
-    private void checkExceedGenerationCount(int userId) {
-        // 注意：与视频生成共用今日次数统计（统计 video_generate_result 表），如需独立限额请调整
-        long finalCount = servicedao.getAllVideoResults().stream()
-                .filter(r -> r.getUser_id() == userId)
-                .filter(r -> Timestamp.valueOf(LocalDateTime.parse(r.getCreated_at()))
-                        .toLocalDateTime().toLocalDate().isEqual(LocalDate.now()))
-                .count();
-        if (finalCount > DAILY_GENERATION_LIMIT) {
-            throw new ServiceException("403", "You have exceeded generation limit per day.");
-        }
-    }
-
     /** 提交混元 3D 快速建模任务（prompt 与 imageUrl 二选一） */
     private SubmitHunyuanTo3DRapidJobResponse generateModelRequest(String prompt, String imageUrl,
             String resultFormat, Boolean enablePBR, Boolean enableGeometry) throws TencentCloudSDKException {
-        Credential cred = new Credential(tencentSecretId, tencentSecretKey);
-        HttpProfile httpProfile = new HttpProfile();
-        httpProfile.setEndpoint("ai3d.tencentcloudapi.com");
-        ClientProfile clientProfile = new ClientProfile();
-        clientProfile.setHttpProfile(httpProfile);
-        Ai3dClient client = new Ai3dClient(cred, "ap-guangzhou", clientProfile);
+        Ai3dClient client = buildAi3dClient();
         SubmitHunyuanTo3DRapidJobRequest req = new SubmitHunyuanTo3DRapidJobRequest();
         if (prompt != null && prompt.length() > 0) {
             req.setPrompt(prompt);
@@ -192,45 +164,29 @@ public class ModelGenerationService {
 
     /** 查询建模任务进度（供 ModelTaskScheduler 定时轮询） */
     public QueryHunyuanTo3DRapidJobResponse queryModelGenerateRequest(String jobId) throws TencentCloudSDKException {
-        Credential cred = new Credential(tencentSecretId, tencentSecretKey);
-        HttpProfile httpProfile = new HttpProfile();
-        httpProfile.setEndpoint("ai3d.tencentcloudapi.com");
-        ClientProfile clientProfile = new ClientProfile();
-        clientProfile.setHttpProfile(httpProfile);
-        Ai3dClient client = new Ai3dClient(cred, "ap-guangzhou", clientProfile);
         QueryHunyuanTo3DRapidJobRequest req = new QueryHunyuanTo3DRapidJobRequest();
         req.setJobId(jobId);
-        return client.QueryHunyuanTo3DRapidJob(req);
+        return buildAi3dClient().QueryHunyuanTo3DRapidJob(req);
+    }
+
+    /** 构建腾讯云 AI3D 客户端（endpoint/region 常量统一） */
+    private Ai3dClient buildAi3dClient() {
+        Credential cred = new Credential(tencentSecretId, tencentSecretKey);
+        HttpProfile httpProfile = new HttpProfile();
+        httpProfile.setEndpoint(AiConstants.TENCENT_AI3D_ENDPOINT);
+        ClientProfile clientProfile = new ClientProfile();
+        clientProfile.setHttpProfile(httpProfile);
+        return new Ai3dClient(cred, AiConstants.TENCENT_AI3D_REGION, clientProfile);
     }
 
     /** 下载远程文件并上传到 OSS，返回 objectName */
     public String downloadAndUploadToOss(String sourceUrl, String objectName) throws IOException {
-        OSS ossClient = new OSSClientBuilder().build(ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .build();
-        Request request = new Request.Builder().url(sourceUrl).build();
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Failed to download: " + response.code());
-            }
-            byte[] data = response.body().bytes();
-            PutObjectRequest putObjectRequest = new PutObjectRequest(ossBucket, objectName,
-                    new ByteArrayInputStream(data));
-            ossClient.putObject(putObjectRequest);
-        } finally {
-            ossClient.shutdown();
-        }
-        return objectName;
+        return ossService.uploadBytes(downloadFileBytes(sourceUrl), objectName);
     }
 
     /** 下载远程文件字节流 */
     public byte[] downloadFileBytes(String sourceUrl) throws IOException {
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .build();
+        OkHttpClient client = HttpClients.timeoutClient(60, 60);
         Request request = new Request.Builder().url(sourceUrl).build();
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -269,7 +225,7 @@ public class ModelGenerationService {
             }
             return totalTriangles;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("GLB 三角面数解析失败: {}", e.getMessage());
             return 0;
         }
     }

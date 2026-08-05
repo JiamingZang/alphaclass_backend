@@ -30,7 +30,7 @@ public class TextToImageController {
 
     /** 文生图：返回图片 id/url 及落库信息 */
     @RequestMapping(value = "/services/text-to-image/generate-image", method = RequestMethod.POST)
-    public JSONResult generateImage(@RequestBody Map<String, Object> params) throws com.aliyuncs.exceptions.ClientException {
+    public JSONResult generateImage(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         Object prompt = params.get("prompt");
         if (prompt == null) {

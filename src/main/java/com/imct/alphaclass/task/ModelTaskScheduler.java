@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.imct.alphaclass.bean.GenModelResult;
+import com.imct.alphaclass.common.AiConstants;
 import com.imct.alphaclass.dao.ServiceDAO;
 import com.imct.alphaclass.service.ModelGenerationService;
 import com.tencentcloudapi.ai3d.v20250513.models.QueryHunyuanTo3DRapidJobResponse;
@@ -22,6 +24,7 @@ import com.tencentcloudapi.common.exception.TencentCloudSDKException;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ModelTaskScheduler {
 
     private final ServiceDAO servicedao;
@@ -31,7 +34,7 @@ public class ModelTaskScheduler {
     public void pollModelTasks() {
         List<GenModelResult> results = servicedao.getAllModelResults();
         for (GenModelResult r : results) {
-            if (r.getTask_status().equals("GENERATING")) {
+            if (AiConstants.TASK_GENERATING.equals(r.getTask_status())) {
                 processGeneratingTask(r);
             }
         }
@@ -41,9 +44,9 @@ public class ModelTaskScheduler {
         try {
             QueryHunyuanTo3DRapidJobResponse queryResponse = modelService
                     .queryModelGenerateRequest(r.getJob_id());
-            if (queryResponse.getStatus().equals("FAIL")) {
-                servicedao.updateModelResultById("FAILED", "", "", 0, 0, r.getRequest_id());
-            } else if (queryResponse.getStatus().equals("DONE")) {
+            if (AiConstants.TASK_FAIL.equals(queryResponse.getStatus())) {
+                servicedao.updateModelResultById(AiConstants.TASK_FAILED, "", "", 0, 0, r.getRequest_id());
+            } else if (AiConstants.TASK_DONE.equals(queryResponse.getStatus())) {
                 String tencentUrl = "";
                 String tencentPreviewUrl = "";
                 if (queryResponse.getResultFile3Ds() != null && queryResponse.getResultFile3Ds().length > 0) {
@@ -57,21 +60,22 @@ public class ModelTaskScheduler {
                 try {
                     if (tencentUrl.length() > 0) {
                         byte[] glbData = modelService.downloadFileBytes(tencentUrl);
-                        ossUrl = modelService.downloadAndUploadToOss(tencentUrl, "assets/aigc_models/models/" + jobId + ".glb");
+                        ossUrl = modelService.downloadAndUploadToOss(tencentUrl,
+                                AiConstants.OSS_MODEL_DIR + jobId + ".glb");
                         polygonCount = modelService.countGlbTriangles(glbData);
                     }
                     if (tencentPreviewUrl.length() > 0) {
                         ossThumbnailUrl = modelService.downloadAndUploadToOss(tencentPreviewUrl,
-                                "assets/aigc_models/thumbnails/" + jobId + ".png");
+                                AiConstants.OSS_MODEL_THUMBNAIL_DIR + jobId + ".png");
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("模型产物下载/上传失败: jobId={}, error={}", jobId, e.getMessage());
                 }
-                servicedao.updateModelResultById("FINISHED", ossUrl, ossThumbnailUrl, polygonCount, 0,
+                servicedao.updateModelResultById(AiConstants.TASK_FINISHED, ossUrl, ossThumbnailUrl, polygonCount, 0,
                         r.getRequest_id());
             }
         } catch (TencentCloudSDKException e) {
-            e.printStackTrace();
+            log.error("模型任务查询失败: jobId={}, error={}", r.getJob_id(), e.getMessage());
         }
     }
 }

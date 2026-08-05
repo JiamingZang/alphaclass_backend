@@ -14,9 +14,13 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
+import com.imct.alphaclass.common.AiConstants;
 import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.exception.ServiceException;
+import com.imct.alphaclass.utils.HttpClients;
 import com.imct.alphaclass.utils.MapUtils;
+
+import lombok.extern.slf4j.Slf4j;
 
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -30,13 +34,13 @@ import okhttp3.Response;
  * 返回候选列表；无常见解释的多义词（如“递归”）从义项列表抓取。
  */
 @Service
+@Slf4j
 public class WikiService {
 
     /** URL 代理抓取：清洗掉 script/link/style 后返回 HTML（供前端绕过跨域限制） */
     public String getDataFromUrl(String urlParam) {
         validatePublicUrl(urlParam);
-        OkHttpClient client = new OkHttpClient().newBuilder()
-            .build();
+        OkHttpClient client = HttpClients.defaultClient();
         Request request = new Request.Builder()
             .url(urlParam)
             .method("GET", null)
@@ -50,17 +54,16 @@ public class WikiService {
             document.select("style").remove();
             return document.toString();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("URL 代理抓取失败: {}", e.getMessage());
             return e.toString();
         }
     }
 
     /** 按关键词搜索百科条目，返回条目候选列表（无结果时返回空列表） */
     public List<WikiResult> getWikiItems(String keyword) {
-        OkHttpClient client = new OkHttpClient().newBuilder()
-            .build();
+        OkHttpClient client = HttpClients.defaultClient();
 
-        String uri = "http://baike.baidu.com/search/word?word=" + MapUtils.urlEncode(keyword);
+        String uri = AiConstants.BAIKE_SEARCH_URL + "?word=" + MapUtils.urlEncode(keyword);
         Request request = new Request.Builder()
             .url(uri)
             .method("GET", null)
@@ -96,7 +99,7 @@ public class WikiService {
                 for (Element item : polysemant_list) {
                     Element aNode = item.select("a").first();
                     if (aNode != null) {
-                        href = "https://baike.baidu.com" + item.select("a").attr("href");
+                        href = AiConstants.BAIKE_PAGE_PREFIX + item.select("a").attr("href");
                         results.add(new WikiResult(keyword, item.select("a").attr("title"), href, ""));
                     } else {
                         Element spanNode = item.select("span").first();
@@ -115,7 +118,7 @@ public class WikiService {
                 }
                 Elements nodes = poly_node2.select("a");
                 for (Element node : nodes) {
-                    href = "https://baike.baidu.com" + node.attr("href");
+                    href = AiConstants.BAIKE_PAGE_PREFIX + node.attr("href");
                     // 将该义项加入候选列表
                     results.add(new WikiResult(keyword, node.text(), href, ""));
                 }
@@ -126,7 +129,7 @@ public class WikiService {
             results.add(new WikiResult(keyword, keyword, "", description));
             return results;
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("百科搜索失败: {}", e.getMessage());
             throw new ServiceException(Constants.CODE_400, e.toString());
         }
     }
@@ -134,8 +137,7 @@ public class WikiService {
     /** 抓取百科条目详情页的标题与长描述 */
     public Map<String, Object> getLongDescription(String uri) {
         validatePublicUrl(uri);
-        OkHttpClient client = new OkHttpClient().newBuilder()
-            .build();
+        OkHttpClient client = HttpClients.defaultClient();
         String description = "";
         Request request = new Request.Builder()
             .url(uri)
@@ -161,7 +163,7 @@ public class WikiService {
             result.put("long_description", description);
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("百科详情抓取失败: {}", e.getMessage());
             throw new ServiceException(Constants.CODE_400, e.toString());
         }
     }

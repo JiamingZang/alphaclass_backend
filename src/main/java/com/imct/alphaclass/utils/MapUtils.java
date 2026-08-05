@@ -2,6 +2,7 @@ package com.imct.alphaclass.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -62,6 +63,11 @@ public final class MapUtils {
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("UTF-8 not supported", e);
         }
+    }
+
+    /** 当前时间戳字符串（各 Service 落库统一使用，替代重复的 new Timestamp(...) 写法） */
+    public static String now() {
+        return new Timestamp(System.currentTimeMillis()).toString();
     }
 
     /** 时间字段统一格式化（各 Service 响应组装共用，替代重复的 DateTimeFormatter 定义） */

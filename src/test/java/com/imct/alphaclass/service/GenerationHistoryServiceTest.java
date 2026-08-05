@@ -30,6 +30,9 @@ class GenerationHistoryServiceTest {
     @Mock
     private ServiceDAO servicedao;
 
+    @Mock
+    private AiUsageGuard usageGuard;
+
     @InjectMocks
     private ModelGenerationService modelService;
 

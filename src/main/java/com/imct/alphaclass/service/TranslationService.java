@@ -20,7 +20,11 @@ import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.imct.alphaclass.common.AiConstants;
+import com.imct.alphaclass.utils.HttpClients;
 import com.imct.alphaclass.utils.MapUtils;
+
+import lombok.extern.slf4j.Slf4j;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -33,6 +37,7 @@ import okhttp3.Response;
  * 再抓取有道网页补充音标与例句（API 响应中不包含这些信息）。
  */
 @Service
+@Slf4j
 public class TranslationService {
 
     @Value("${ai.youdao.app-key}")
@@ -44,15 +49,13 @@ public class TranslationService {
     /** 中文 → 英文翻译 */
     public YoudaoTranslationResult translateCN(String q) {
         Map<String, String> dic = getRequestMap(q, "zh-CHS", "en");//所有上传的参数将写入该字典中
-        String url = "https://openapi.youdao.com/api";
-        return get(url, dic);
+        return get(AiConstants.YOUDAO_API_URL, dic);
     }
 
     /** 英文 → 中文翻译（含音标与例句） */
     public YoudaoTranslationResult translateEN(String q) {
         Map<String, String> dic = getRequestMap(q, "en", "zh-CHS");//所有上传的参数将写入该字典中
-        String url = "https://openapi.youdao.com/api";
-        YoudaoTranslationResult res = get(url, dic);
+        YoudaoTranslationResult res = get(AiConstants.YOUDAO_API_URL, dic);
         res.exampleSentences = getExampleSentences(q);
         return res;
     }
@@ -111,9 +114,8 @@ public class TranslationService {
     /** 从有道网页抓取英文例句（英 → 中成对） */
     public List<ExampleSentencesResult> getExampleSentences(String enq) {
         List<ExampleSentencesResult> res = new ArrayList<ExampleSentencesResult>();
-        String wordURL = "https://www.youdao.com/result?word=" + MapUtils.urlEncode(enq) + "&lang=en";
-        OkHttpClient client = new OkHttpClient().newBuilder()
-            .build();
+        String wordURL = AiConstants.YOUDAO_WEB_RESULT_URL + "?word=" + MapUtils.urlEncode(enq) + "&lang=en";
+        OkHttpClient client = HttpClients.defaultClient();
         Request request = new Request.Builder()
             .url(wordURL)
             .method("GET", null)
@@ -135,7 +137,7 @@ public class TranslationService {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("抓取有道例句失败: {}", e.getMessage());
         }
         return res;
     }
@@ -156,8 +158,7 @@ public class TranslationService {
             i++;
         }
 
-        OkHttpClient client = new OkHttpClient().newBuilder()
-            .build();
+        OkHttpClient client = HttpClients.defaultClient();
         Request request = new Request.Builder()
             .url(url + "?" + builder.toString())
             .method("GET", null)
@@ -176,7 +177,8 @@ public class TranslationService {
                             .matcher(res2);
             String find = matcher.find() ? matcher.group(1) : "";
             //获取例句结果
-            String exampleSentenceUrl = "https://mobile.youdao.com/singledict?q="
+            String exampleSentenceUrl = AiConstants.YOUDAO_MOBILE_SINGLEDICT_URL
+                                    + "?q="
                                     + res1.query
                                     + "&dict=blng_sents_part&le=eng&more=false";
             request = new Request.Builder().url(exampleSentenceUrl).method("GET", null).build();
@@ -200,7 +202,7 @@ public class TranslationService {
             res3.exampleSentences = exampleSentencesResults;
             return res3;
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("有道翻译 API 调用失败: {}", e.getMessage());
             return null;
         }
     }

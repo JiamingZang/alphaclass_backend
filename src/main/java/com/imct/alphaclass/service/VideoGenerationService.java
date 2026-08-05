@@ -1,8 +1,5 @@
 package com.imct.alphaclass.service;
 
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,8 +12,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.imct.alphaclass.bean.GenVideoResult;
+import com.imct.alphaclass.common.AiConstants;
 import com.imct.alphaclass.dao.ServiceDAO;
-import com.imct.alphaclass.exception.ServiceException;
+import com.imct.alphaclass.utils.MapUtils;
 
 import ai.z.openapi.ZhipuAiClient;
 import ai.z.openapi.service.videos.VideoCreateParams;
@@ -35,6 +33,7 @@ import ai.z.openapi.service.videos.VideosResponse;
 public class VideoGenerationService {
 
     private final ServiceDAO servicedao;
+    private final AiUsageGuard usageGuard;
 
     @Value("${ai.zhipu.api-key}")
     private String zhipuApiKey;
@@ -43,48 +42,44 @@ public class VideoGenerationService {
     @Value("${app.video-proxy-prefix:http://localhost:8080/proxy/}")
     private String videoProxyPrefix;
 
-    /** 当日生成次数上限 */
-    private static final int DAILY_GENERATION_LIMIT = 10;
-
     /** 文生视频：提交智谱任务并落库，返回 id/task_status */
     public Map<String, Object> textToVideo(Map<String, Object> params, int userId) {
-        checkExceedGenerationCount(userId);
+        usageGuard.checkExceedGenerationCount(userId);
         GenVideoResult res = new GenVideoResult();
         res.setUser_id(userId);
         res.setPrompt(params.get("prompt").toString());
-        String quality = params.get("quality").toString().equals("quality") ? "quality" : "speed";
-        boolean withAudio = params.get("with_audio").toString().equals("true") ? true : false;
         res.setSize(params.get("size").toString());
-        int fps = Integer.valueOf(params.get("fps").toString()) == 60 ? 60 : 30;
-
-        VideoObject result = generateVideoRequest(res.getPrompt(), null, quality, withAudio, res.getSize(), fps).getData();
-        res.setRequest_id(result.getId());
-        res.setTask_status(result.getTaskStatus());
-        res.setType("TextToVideo");
-        res.setIs_deleted(0);
-        res.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
-        servicedao.addVideoResult(res);
-        return taskResponse(res);
+        return submitVideoTask(res, null, params, AiConstants.TYPE_TEXT_TO_VIDEO);
     }
 
     /** 图生视频：提交智谱任务并落库，返回 id/task_status */
     public Map<String, Object> imageToVideo(Map<String, Object> params, int userId) {
-        checkExceedGenerationCount(userId);
+        usageGuard.checkExceedGenerationCount(userId);
         GenVideoResult res = new GenVideoResult();
         res.setUser_id(userId);
         res.setPrompt(params.get("prompt").toString());
-        String imageUrl = params.get("image_url").toString();
-        String quality = params.get("quality").toString().equals("quality") ? "quality" : "speed";
-        boolean withAudio = params.get("with_audio").toString().equals("true") ? true : false;
         res.setSize(params.get("size").toString());
-        int fps = Integer.valueOf(params.get("fps").toString()) == 60 ? 60 : 30;
+        return submitVideoTask(res, params.get("image_url").toString(), params, AiConstants.TYPE_IMAGE_TO_VIDEO);
+    }
 
-        VideoObject result = generateVideoRequest(res.getPrompt(), imageUrl, quality, withAudio, res.getSize(), fps).getData();
+    /** 提交智谱任务并落库（文生/图生共用组装），返回 id/task_status */
+    private Map<String, Object> submitVideoTask(GenVideoResult res, String imageUrl, Map<String, Object> params,
+            String type) {
+        String quality = AiConstants.VIDEO_QUALITY_QUALITY.equals(params.get("quality").toString())
+                ? AiConstants.VIDEO_QUALITY_QUALITY
+                : AiConstants.VIDEO_QUALITY_SPEED;
+        boolean withAudio = "true".equals(params.get("with_audio").toString());
+        int fps = Integer.valueOf(params.get("fps").toString()) == AiConstants.VIDEO_FPS_HIGH
+                ? AiConstants.VIDEO_FPS_HIGH
+                : AiConstants.VIDEO_FPS_DEFAULT;
+
+        VideoObject result = generateVideoRequest(res.getPrompt(), imageUrl, quality, withAudio, res.getSize(), fps)
+                .getData();
         res.setRequest_id(result.getId());
         res.setTask_status(result.getTaskStatus());
-        res.setType("ImageToVideo");
+        res.setType(type);
         res.setIs_deleted(0);
-        res.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
+        res.setCreated_at(MapUtils.now());
         servicedao.addVideoResult(res);
         return taskResponse(res);
     }
@@ -94,17 +89,17 @@ public class VideoGenerationService {
         List<GenVideoResult> finalRes = new ArrayList<GenVideoResult>();
         for (GenVideoResult r : servicedao.getAllVideoResults()) {
             if (r.getUser_id() == userId && r.getIs_deleted() == 0) {
-                if (r.getTask_status().equals("PROCESSING")) {
+                if (AiConstants.TASK_PROCESSING.equals(r.getTask_status())) {
                     VideosResponse apply = zhipuClient().videos()
                             .videoGenerationsResult(r.getRequest_id());
                     VideoObject response = apply.getData();
                     String status = response.getTaskStatus();
-                    if (!status.equals("PROCESSING")) {
+                    if (!AiConstants.TASK_PROCESSING.equals(status)) {
                         VideoResult o = apply.getData().getVideoResult().get(0);
                         servicedao.updateVideoResultById(
                                 status,
-                                o.getUrl().replace("https://", videoProxyPrefix),
-                                o.getCoverImageUrl().replace("https://", videoProxyPrefix),
+                                o.getUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix),
+                                o.getCoverImageUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix),
                                 r.getRequest_id());
                         r.setTask_status(status);
                         r.setUrl(o.getUrl());
@@ -123,18 +118,6 @@ public class VideoGenerationService {
         servicedao.deleteVideoResultById(id);
     }
 
-    /** 当日生成次数限制：超过上限则拒绝新任务 */
-    private void checkExceedGenerationCount(int userId) {
-        long finalCount = servicedao.getAllVideoResults().stream()
-                .filter(r -> r.getUser_id() == userId)
-                .filter(r -> Timestamp.valueOf(LocalDateTime.parse(r.getCreated_at()))
-                        .toLocalDateTime().toLocalDate().isEqual(LocalDate.now()))
-                .count();
-        if (finalCount > DAILY_GENERATION_LIMIT) {
-            throw new ServiceException("403", "You have exceeded generation limit per day.");
-        }
-    }
-
     /** 组装提交结果响应（id + task_status） */
     private Map<String, Object> taskResponse(GenVideoResult res) {
         Map<String, Object> resp = new HashMap<String, Object>();
@@ -147,7 +130,7 @@ public class VideoGenerationService {
     private VideosResponse generateVideoRequest(String prompt, String imageUrl, String quality, boolean withAudio,
             String size, int fps) {
         VideoCreateParams.VideoCreateParamsBuilder<?, ?> builder = VideoCreateParams.builder()
-                .model("cogvideox-3")
+                .model(AiConstants.VIDEO_MODEL)
                 .prompt(prompt)
                 .quality(quality)
                 .withAudio(withAudio)
