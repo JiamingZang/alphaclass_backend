@@ -121,9 +121,13 @@ public class ModelGenerationService {
         String url = params.get("url").toString();
         String thumbnailUrl = params.get("thumbnail_url").toString();
         // TODO: 前端传参键名疑似拼写错误（pologen_count），与前端确认后再修正
-        int polygonCount = Integer.valueOf(params.get("pologen_count").toString());
-        int size = Integer.valueOf(params.get("size").toString());
-        servicedao.updateModelResultById(status, url, thumbnailUrl, polygonCount, size, requestId, userId);
+        try {
+            int polygonCount = Integer.valueOf(params.get("pologen_count").toString());
+            int size = Integer.valueOf(params.get("size").toString());
+            servicedao.updateModelResultById(status, url, thumbnailUrl, polygonCount, size, requestId, userId);
+        } catch (NumberFormatException e) {
+            throw new ServiceException(Constants.CODE_400, "pologen_count/size 必须为数字");
+        }
     }
 
     /** 当前用户的模型生成历史（未删除，按创建时间倒序；created_at 为空时垫底，避免排序 NPE） */

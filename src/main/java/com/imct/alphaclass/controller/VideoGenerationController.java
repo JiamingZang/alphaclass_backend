@@ -33,6 +33,9 @@ public class VideoGenerationController {
     @RequestMapping(value = "/services/generate-video/text-to-video", method = RequestMethod.POST)
     public JSONResult textToVideo(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
+        if (params.get("prompt") == null || params.get("size") == null) {
+            return JSONResult.failWithMsg(Constants.CODE_400, "缺少 prompt/size 参数");
+        }
         return JSONResult.successWithData(service.textToVideo(params, user.getId()));
     }
 
@@ -40,6 +43,9 @@ public class VideoGenerationController {
     @RequestMapping(value = "/services/generate-video/image-to-video", method = RequestMethod.POST)
     public JSONResult imageToVideo(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
+        if (params.get("prompt") == null || params.get("size") == null || params.get("image_url") == null) {
+            return JSONResult.failWithMsg(Constants.CODE_400, "缺少 prompt/size/image_url 参数");
+        }
         return JSONResult.successWithData(service.imageToVideo(params, user.getId()));
     }
 

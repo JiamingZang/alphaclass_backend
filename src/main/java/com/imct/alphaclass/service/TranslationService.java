@@ -192,11 +192,12 @@ public class TranslationService {
             Elements cols = document.getElementsByClass("col2");
             List<ExampleSentencesResult> exampleSentencesResults = new ArrayList<>();
             for (Element ele : cols) {
+                Element p = ele.getElementsByTag("p").first();
+                if (p == null) {
+                    continue;
+                }
                 exampleSentencesResults.add(
-                    new ExampleSentencesResult(
-                        ele.getElementsByTag("p").first().text(),
-                        ele.getElementsByClass("grey").text()
-                    )
+                    new ExampleSentencesResult(p.text(), ele.getElementsByClass("grey").text())
                 );
             }
             YoudaoTranslationResult res3 = JSON.parseObject(res, new TypeReference<YoudaoTranslationResult>() {});

@@ -3,6 +3,7 @@ package com.imct.alphaclass.exception;
 
 import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,6 +14,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * 全局异常处理：业务异常（ServiceException）按 code 返回，
  * 参数类异常返回 400，其余未知异常兜底返回 500（统一 JSON 契约）。
  */
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -36,10 +38,11 @@ public class GlobalExceptionHandler {
         return JSONResult.failWithMsg(Constants.CODE_400, "请求参数格式错误");
     }
 
-    /** 未知异常兜底 → 500，避免泄露堆栈细节 */
+    /** 未知异常兜底 → 500，避免泄露堆栈细节（服务端保留完整日志） */
     @ExceptionHandler(Exception.class)
     @ResponseBody
     public JSONResult handleUnknown(Exception e) {
+        log.error("Unhandled exception", e);
         return JSONResult.failWithMsg(Constants.CODE_500, "服务器内部错误");
     }
 }

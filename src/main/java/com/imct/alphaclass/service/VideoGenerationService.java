@@ -94,17 +94,17 @@ public class VideoGenerationService {
                             .videoGenerationsResult(r.getRequest_id());
                     VideoObject response = apply.getData();
                     String status = response.getTaskStatus();
-                    if (!AiConstants.TASK_PROCESSING.equals(status)) {
-                        VideoResult o = apply.getData().getVideoResult().get(0);
+                    if (!AiConstants.TASK_PROCESSING.equals(status) && response.getVideoResult() != null
+                            && !response.getVideoResult().isEmpty()) {
+                        VideoResult o = response.getVideoResult().get(0);
+                        // 产物地址统一经本地代理转发（与落库一致，不向响应暴露智谱直链）
+                        String url = o.getUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix);
+                        String thumbnailUrl = o.getCoverImageUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix);
                         servicedao.updateVideoResultById(
-                                status,
-                                o.getUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix),
-                                o.getCoverImageUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix),
-                                r.getRequest_id(),
-                                r.getUser_id());
+                                status, url, thumbnailUrl, r.getRequest_id(), r.getUser_id());
                         r.setTask_status(status);
-                        r.setUrl(o.getUrl());
-                        r.setThumbnail_url(o.getCoverImageUrl());
+                        r.setUrl(url);
+                        r.setThumbnail_url(thumbnailUrl);
                     }
                 }
                 finalRes.add(r);
