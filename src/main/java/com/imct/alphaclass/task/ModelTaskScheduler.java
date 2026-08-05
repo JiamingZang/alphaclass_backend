@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Resource;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -39,8 +40,18 @@ public class ModelTaskScheduler {
     @Resource
     private ServiceDAO servicedao;
 
-    private static String secretId = "REPLACED_TENCENT_SECRET_ID";
-    private static String secretKey = "REPLACED_TENCENT_SECRET_KEY";
+    @Value("${ai.tencent.secret-id}")
+    private String tencentSecretId;
+    @Value("${ai.tencent.secret-key}")
+    private String tencentSecretKey;
+    @Value("${ai.oss.endpoint}")
+    private String ossEndpoint;
+    @Value("${ai.oss.bucket}")
+    private String ossBucket;
+    @Value("${ai.oss.access-key-id}")
+    private String ossAccessKeyId;
+    @Value("${ai.oss.access-key-secret}")
+    private String ossAccessKeySecret;
 
     @Scheduled(fixedDelay = 30000)
     public void pollModelTasks() {
@@ -73,10 +84,8 @@ public class ModelTaskScheduler {
                     if (tencentUrl.length() > 0) {
                         byte[] glbData = downloadFileBytes(tencentUrl);
                         ossUrl = "assets/aigc_models/models/" + jobId + ".glb";
-                        String endpoint = "oss-cn-beijing.aliyuncs.com";
-                        String bucketName = "alphaclass";
-                        OSS ossClient = new OSSClientBuilder().build(endpoint, "REPLACED_ALIYUN_ACCESS_KEY_ID", "REPLACED_ALIYUN_ACCESS_KEY_SECRET");
-                        PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, ossUrl, new ByteArrayInputStream(glbData));
+                        OSS ossClient = new OSSClientBuilder().build(ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
+                        PutObjectRequest putObjectRequest = new PutObjectRequest(ossBucket, ossUrl, new ByteArrayInputStream(glbData));
                         ossClient.putObject(putObjectRequest);
                         ossClient.shutdown();
                         polygonCount = countGlbTriangles(glbData);
@@ -95,7 +104,7 @@ public class ModelTaskScheduler {
     }
 
     private QueryHunyuanTo3DRapidJobResponse queryModelGenerateRequest(String jobId) throws TencentCloudSDKException {
-        Credential cred = new Credential(secretId, secretKey);
+        Credential cred = new Credential(tencentSecretId, tencentSecretKey);
         HttpProfile httpProfile = new HttpProfile();
         httpProfile.setEndpoint("ai3d.tencentcloudapi.com");
         ClientProfile clientProfile = new ClientProfile();
@@ -108,9 +117,7 @@ public class ModelTaskScheduler {
     }
 
     private String downloadAndUploadToOss(String sourceUrl, String objectName) throws IOException {
-        String endpoint = "oss-cn-beijing.aliyuncs.com";
-        String bucketName = "alphaclass";
-        OSS ossClient = new OSSClientBuilder().build(endpoint, "REPLACED_ALIYUN_ACCESS_KEY_ID", "REPLACED_ALIYUN_ACCESS_KEY_SECRET");
+        OSS ossClient = new OSSClientBuilder().build(ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
         OkHttpClient client = new OkHttpClient().newBuilder()
             .connectTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -121,7 +128,7 @@ public class ModelTaskScheduler {
                 throw new IOException("Failed to download: " + response.code());
             }
             byte[] data = response.body().bytes();
-            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, new ByteArrayInputStream(data));
+            PutObjectRequest putObjectRequest = new PutObjectRequest(ossBucket, objectName, new ByteArrayInputStream(data));
             ossClient.putObject(putObjectRequest);
         } finally {
             ossClient.shutdown();

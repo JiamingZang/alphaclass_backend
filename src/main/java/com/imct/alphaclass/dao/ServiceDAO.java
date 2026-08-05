@@ -10,10 +10,10 @@ import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-import com.imct.alphaclass.controller.ServiceController.GenModelResult;
-import com.imct.alphaclass.controller.ServiceController.GenVideoResult;
-import com.imct.alphaclass.controller.ServiceController.ServiceResult;
-import com.imct.alphaclass.controller.ServiceController.ServiceUsage;
+import com.imct.alphaclass.bean.GenModelResult;
+import com.imct.alphaclass.bean.GenVideoResult;
+import com.imct.alphaclass.bean.ServiceUsage;
+import com.imct.alphaclass.bean.TextToImageResult;
 
 @Mapper
 public interface ServiceDAO {
@@ -30,7 +30,7 @@ public interface ServiceDAO {
 
     @Insert("Insert into text_to_image_result (usage_id,prompt,url,thumbnail_url,size,created_at,is_deleted) values(#{usage_id},#{prompt},#{url},#{thumbnail_url},#{size},#{created_at},#{is_deleted})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
-    public void addResult(ServiceResult result);
+    public void addResult(TextToImageResult result);
 
     @Insert("Insert into video_generate_result (request_id,user_id,type,prompt,url,thumbnail_url,size,task_status,created_at,is_deleted) values(#{request_id},#{user_id},#{type},#{prompt},#{url},#{thumbnail_url},#{size},#{task_status},#{created_at},#{is_deleted})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
