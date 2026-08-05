@@ -13,8 +13,10 @@ import org.springframework.stereotype.Service;
 
 import com.imct.alphaclass.bean.Asset;
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.AssetDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
@@ -27,7 +29,7 @@ public class AssetService {
     private UserDAO userdao;
 
     public List<Map<String, Object>> getAllByUser(String username, int page, int perpage, String type) {
-        User user = userdao.getByUsername(username);
+        User user = requireUser(username);
         int m = (page - 1) * perpage;
         int n = perpage;
         List<Map<String, Object>> assets;
@@ -72,7 +74,7 @@ public class AssetService {
             asset.setGenerated(false);
         }
 
-        User user = userdao.getByUsername(username);
+        User user = requireUser(username);
         asset.setUid(user.getId());
         asset.setCreated_at(new Timestamp(System.currentTimeMillis()).toString());
         asset.setUpdated_at(new Timestamp(System.currentTimeMillis()).toString());
@@ -99,5 +101,14 @@ public class AssetService {
         result.remove("uid");
         result.put("id", result.get("id").toString());
         return result;
+    }
+
+    /** 用户不存在时抛 404（替代链式 NPE） */
+    private User requireUser(String username) {
+        User user = userdao.getByUsername(username);
+        if (user == null) {
+            throw new ServiceException(Constants.CODE_404, "用户不存在");
+        }
+        return user;
     }
 }

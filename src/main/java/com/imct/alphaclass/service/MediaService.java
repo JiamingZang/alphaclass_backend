@@ -21,6 +21,7 @@ import com.imct.alphaclass.bean.MediaTranslation;
 import com.imct.alphaclass.bean.MediaWiki;
 import com.imct.alphaclass.bean.Part;
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.AnchorDAO;
 import com.imct.alphaclass.dao.AnimationDAO;
 import com.imct.alphaclass.dao.AssetDAO;
@@ -32,6 +33,7 @@ import com.imct.alphaclass.dao.MediaTranslationDAO;
 import com.imct.alphaclass.dao.MediaWikiDAO;
 import com.imct.alphaclass.dao.PartDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
@@ -62,9 +64,7 @@ public class MediaService {
     @Transactional
     public Map<String, Object> addMediaByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Media media = new Media();
         media.setName(params.get("name").toString());
         media.setType(params.get("type").toString());
@@ -149,9 +149,7 @@ public class MediaService {
     @Transactional
     public Map<String, Object> addMediaTranslationOrWikiByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Media media = new Media();
         media.setName(params.get("name").toString());
         media.setType(params.get("type").toString());
@@ -189,9 +187,7 @@ public class MediaService {
     }
 
     public void deleteMediaById(String coursename, String ownername, String keywordname, int media_id) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
         if (media != null && media.getKid() == keyword.getId()) {
             dao.deleteMediaById(media_id);
@@ -199,9 +195,7 @@ public class MediaService {
     }
 
     public List<Map<String, Object>> getAllMediasByKeyword(String ownername, String coursename, String keywordname) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         return getMediasByKid(keyword.getId());
     }
 
@@ -219,9 +213,7 @@ public class MediaService {
     }
 
     public Map<String, Object> getMediaById(String coursename, String ownername, String keywordname, int media_id) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
         if (media != null && media.getKid() == keyword.getId()) {
             return buildMediaResponse(media);
@@ -232,9 +224,7 @@ public class MediaService {
     @Transactional
     public Map<String, Object> modifyMediaById(String coursename, String ownername, String keywordname, int media_id,
             Map<String, Object> params) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Media old_media = dao.getMediaById(media_id);
         float color_r;
         float color_g;
@@ -404,6 +394,28 @@ public class MediaService {
     /** translation/wiki/assistant 类型无 asset 关联，assetid 置空 */
     private boolean typeHasNoAsset(Object type) {
         return type != null && (type.equals("translation") || type.equals("wiki") || type.equals("assistant"));
+    }
+
+    /** user/course/keyword 任一不存在时抛 404（替代链式 NPE） */
+    private Course requireCourse(String ownername, String coursename) {
+        User user = userdao.getByUsername(ownername);
+        if (user == null) {
+            throw new ServiceException(Constants.CODE_404, "用户不存在");
+        }
+        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
+        if (course == null) {
+            throw new ServiceException(Constants.CODE_404, "课程不存在");
+        }
+        return course;
+    }
+
+    private Keyword requireKeyword(String ownername, String coursename, String keywordname) {
+        Course course = requireCourse(ownername, coursename);
+        Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
+        if (keyword == null) {
+            throw new ServiceException(Constants.CODE_404, "关键词不存在");
+        }
+        return keyword;
     }
 
     /**

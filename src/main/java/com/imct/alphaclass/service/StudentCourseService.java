@@ -13,9 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.StudentCourse;
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.CourseDAO;
 import com.imct.alphaclass.dao.StudentCourseDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
@@ -31,8 +33,7 @@ public class StudentCourseService {
     private String baseUrl;
 
     public List<Map<String, Object>> getAllStudentsByCourse(String ownername,String coursename){
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
+        Course course = requireCourse(ownername, coursename);
         List<Map<String, Object>> all_scresult = dao.getAllByCid(course.getId());
         List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
         for (Map<String,Object> sc : all_scresult) {
@@ -44,11 +45,10 @@ public class StudentCourseService {
 
     @Transactional
     public void addStudentsByUsername(List<String> students,String ownername,String coursename){
-        User owner = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(owner.getId(), coursename);
+        Course course = requireCourse(ownername, coursename);
         int courseid = course.getId();
         for (String studentname : students) {
-            User stu = userdao.getByUsername(studentname);
+            User stu = requireUser(studentname);
             StudentCourse sc = new StudentCourse();
             sc.setSid(stu.getId());
             sc.setCid(courseid);
@@ -58,11 +58,10 @@ public class StudentCourseService {
 
     @Transactional
     public void deleteStudentsByUsername(List<String> students,String ownername,String coursename){
-        User owner = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(owner.getId(), coursename);
+        Course course = requireCourse(ownername, coursename);
         int courseid = course.getId();
         for (String studentname : students) {
-            User stu = userdao.getByUsername(studentname);
+            User stu = requireUser(studentname);
             dao.deleteCourseByUidAndName(courseid, stu.getId());
         }
     }
@@ -91,5 +90,26 @@ public class StudentCourseService {
         uresult.put("url", baseUrl + "/users/" + uresult.get("username"));
         uresult.put("id", uresult.get("id").toString());
         return uresult;
+    }
+
+    /** user/course 任一不存在时抛 404（替代链式 NPE） */
+    private Course requireCourse(String ownername, String coursename) {
+        User user = userdao.getByUsername(ownername);
+        if (user == null) {
+            throw new ServiceException(Constants.CODE_404, "用户不存在");
+        }
+        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
+        if (course == null) {
+            throw new ServiceException(Constants.CODE_404, "课程不存在");
+        }
+        return course;
+    }
+
+    private User requireUser(String username) {
+        User user = userdao.getByUsername(username);
+        if (user == null) {
+            throw new ServiceException(Constants.CODE_404, "用户不存在");
+        }
+        return user;
     }
 }

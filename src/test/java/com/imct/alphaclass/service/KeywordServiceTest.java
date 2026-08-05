@@ -57,8 +57,9 @@ class KeywordServiceTest {
         course.setId(10);
         course.setName("math");
 
-        when(userdao.getByUsername("alice")).thenReturn(user);
-        when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
+        // lenient：守卫类测试不经过完整链路
+        lenient().when(userdao.getByUsername("alice")).thenReturn(user);
+        lenient().when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
         ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
     }
 
@@ -133,6 +134,26 @@ class KeywordServiceTest {
         ServiceException ex = assertThrows(ServiceException.class,
                 () -> service.getKeywordByCourse("alice", "math", "missing"));
         assertEquals("404", ex.getCode());
+    }
+
+    @Test
+    void getKeywordByCourse_userNotFound_throws404() {
+        when(userdao.getByUsername("ghost")).thenReturn(null);
+
+        ServiceException ex = assertThrows(ServiceException.class,
+                () -> service.getKeywordByCourse("ghost", "math", "k1"));
+        assertEquals("404", ex.getCode());
+        assertEquals("用户不存在", ex.getMessage());
+    }
+
+    @Test
+    void getKeywordByCourse_courseNotFound_throws404() {
+        when(coursedao.getCourseByUidAndName(1, "nope")).thenReturn(null);
+
+        ServiceException ex = assertThrows(ServiceException.class,
+                () -> service.getKeywordByCourse("alice", "nope", "k1"));
+        assertEquals("404", ex.getCode());
+        assertEquals("课程不存在", ex.getMessage());
     }
 
     @Test

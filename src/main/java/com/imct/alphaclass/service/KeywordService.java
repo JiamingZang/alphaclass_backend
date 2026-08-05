@@ -33,8 +33,7 @@ public class KeywordService {
     private String baseUrl;
 
     public Map<String, Object> addKeywordByCourse(String ownername, String coursename, Map<String, Object> params) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
+        Course course = requireCourse(ownername, coursename);
         Keyword keyword = new Keyword();
         keyword.setCid(course.getId());
         keyword.setKeyword(params.get("keyword").toString());
@@ -49,14 +48,12 @@ public class KeywordService {
     }
 
     public void deleteKeywordById(String ownername, String coursename, String keyword) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
+        Course course = requireCourse(ownername, coursename);
         dao.deleteKeywordByCidAndName(course.getId(), keyword);
     }
 
     public List<Map<String, Object>> getAllKeywordsByCourse(String ownername, String coursename) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
+        Course course = requireCourse(ownername, coursename);
         List<Map<String, Object>> all_keywordresult = dao.getAllKeywordsByCid(course.getId());
         for (Map<String, Object> ac : all_keywordresult) {
             ac.remove("cid");
@@ -67,12 +64,7 @@ public class KeywordService {
     }
 
     public Map<String, Object> getKeywordByCourse(String ownername, String coursename, String keywordname) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = dao.getKeywordByCidAndName(course.getId(), keywordname);
-        if (keyword == null) {
-            throw new ServiceException(Constants.CODE_404, "关键词不存在");
-        }
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Map<String, Object> result = MapUtils.toMap(keyword);
         result.remove("cid");
         result.put("medias", mediaservice.getMediasByKid(keyword.getId()));
@@ -82,19 +74,39 @@ public class KeywordService {
 
     public Map<String, Object> modifyKeywordByCourse(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
-        User user = userdao.getByUsername(ownername);
-        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Keyword keyword = dao.getKeywordByCidAndName(course.getId(), keywordname);
+        Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         dao.updateKeywordByCidAndName(
                 params.get("keyword") == null ? keyword.getKeyword() : params.get("keyword").toString(),
-                course.getId(),
+                keyword.getCid(),
                 keywordname);
 
-        Map<String, Object> result = MapUtils.toMap(dao.getKeywordByCidAndName(course.getId(),
+        Map<String, Object> result = MapUtils.toMap(dao.getKeywordByCidAndName(keyword.getCid(),
                 params.get("keyword") == null ? keywordname : params.get("keyword").toString()));
         result.remove("cid");
         result.put("medias", mediaservice.getMediasByKid(keyword.getId()));
         result.put("id", result.get("id").toString());
         return result;
+    }
+
+    /** user/course 任一不存在时抛 404（替代链式 NPE） */
+    private Course requireCourse(String ownername, String coursename) {
+        User user = userdao.getByUsername(ownername);
+        if (user == null) {
+            throw new ServiceException(Constants.CODE_404, "用户不存在");
+        }
+        Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
+        if (course == null) {
+            throw new ServiceException(Constants.CODE_404, "课程不存在");
+        }
+        return course;
+    }
+
+    private Keyword requireKeyword(String ownername, String coursename, String keywordname) {
+        Course course = requireCourse(ownername, coursename);
+        Keyword keyword = dao.getKeywordByCidAndName(course.getId(), keywordname);
+        if (keyword == null) {
+            throw new ServiceException(Constants.CODE_404, "关键词不存在");
+        }
+        return keyword;
     }
 }
