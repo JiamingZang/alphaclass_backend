@@ -212,15 +212,17 @@ class MediaServiceTest {
         assertNull(asset.get("uid"));
         assertNull(asset.get("deleted_at"));
 
-        // anchor 嵌套：getMediaById 的 anchor 不保留任何 pos/euler 字段（全部被移除）
+        // anchor 嵌套：pos/euler 收拢为嵌套结构（与 getAll/modify 一致）
         Map<String, Object> anchor = (Map<String, Object>) result.get("anchor");
         assertNotNull(anchor);
         assertEquals("400", anchor.get("id"));
         assertNull(anchor.get("cid"));
-        assertNull(anchor.get("pos"));
-        assertNull(anchor.get("euler"));
         assertNull(anchor.get("pos_x"));
         assertNull(anchor.get("euler_x"));
+        Map<String, Object> pos = (Map<String, Object>) anchor.get("pos");
+        assertEquals(1.0, ((Number) pos.get("pos_x")).doubleValue());
+        Map<String, Object> euler = (Map<String, Object>) anchor.get("euler");
+        assertEquals(10.0, ((Number) euler.get("euler_x")).doubleValue());
 
         // color 嵌套
         Map<String, Object> color = (Map<String, Object>) result.get("color");
@@ -420,6 +422,8 @@ class MediaServiceTest {
         when(assetdao.getAssetById(300)).thenReturn(buildAsset());
         when(mediamodeldao.getModelinfoById(200)).thenReturn(buildMediaModel());
         when(animationDAO.getAnimationsByModelinfoId(200)).thenReturn(buildAnimations());
+        // 响应统一走 DB 回读组装，parts 每次返回新副本
+        when(partDAO.getAllByMediaID(200)).thenAnswer(invocation -> buildParts());
 
         Map<String, Object> result = service.addMediaByKeyword("alice", "math", "k1", params);
 
@@ -482,8 +486,8 @@ class MediaServiceTest {
 
         assertNotNull(result);
         assertEquals("200", result.get("id"));
-        // 真实契约：translation 数据也嵌套在 "media_wiki" 键下（历史行为，重构时修正键名）
-        Map<String, Object> translation = (Map<String, Object>) result.get("media_wiki");
+        // 契约：translation 数据嵌套在 "media_translation" 键下（与 getAll 一致）
+        Map<String, Object> translation = (Map<String, Object>) result.get("media_translation");
         assertNotNull(translation);
         assertEquals("apple", translation.get("word"));
         assertEquals("苹果", translation.get("translation_english"));
