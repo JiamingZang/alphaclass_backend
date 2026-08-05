@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.User;
@@ -46,6 +47,7 @@ class CourseServiceTest {
         user.setName("Alice");
         // lenient：getById 系列测试不经过 getByUsername
         lenient().when(userdao.getByUsername("alice")).thenReturn(user);
+        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
     }
 
     private Course buildCourse() {

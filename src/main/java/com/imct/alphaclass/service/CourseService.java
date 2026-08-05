@@ -7,14 +7,14 @@ import java.util.Map;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.CourseDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 public class CourseService {
@@ -24,15 +24,16 @@ public class CourseService {
     @Resource
     private UserDAO userdao;
 
+    @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
+    private String baseUrl;
+
     public List<Map<String, Object>> getAllByUser(String username){
         User user = userdao.getByUsername(username);
         DateTimeFormatter simple = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         List<Map<String, Object>> courses= dao.getAllCourseByUid(user.getId());
         for (Map<String,Object> course : courses) {
-            course.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+course.get("name")+"/keywords");
-            course.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+course.get("name")+"/anchors");
-            Map<String, Object> userResult = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
-            // userResult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername());
+            fillCourseUrls(course, user.getUsername());
+            Map<String, Object> userResult = MapUtils.toMap(user);
             course.put("user", userResult);
             course.remove("uid");
             course.put("id", course.get("id").toString());
@@ -49,29 +50,23 @@ public class CourseService {
         course.setUpdated_at(new Timestamp(System.currentTimeMillis()).toString());
         dao.addCourse(course);
         Course courseResult = dao.getCourseById(course.getId());
-        Map<String, Object> result = JSON.parseObject(JSON.toJSONString(courseResult), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> result = MapUtils.toMap(courseResult);
         result.remove("uid");
-        result.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
-        result.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
+        fillCourseUrls(result, user.getUsername());
         return result;
     }
 
     public Map<String, Object> getByUserAndName(String username,String coursename){
         User user = userdao.getByUsername(username);
         Course course = dao.getCourseByUidAndName(user.getId(),coursename);
-        // DateTimeFormatter simple = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         if (course!=null) {
-            Map<String, Object> result = JSON.parseObject(JSON.toJSONString(course), new TypeReference<Map<String, Object>>() {});
-            result.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
-            result.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
-            Map<String, Object> userResult = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
-            userResult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.getUsername());
+            Map<String, Object> result = MapUtils.toMap(course);
+            fillCourseUrls(result, user.getUsername());
+            Map<String, Object> userResult = MapUtils.toMap(user);
+            userResult.put("url", baseUrl + "/users/"+user.getUsername());
             result.put("user", userResult);
             result.remove("uid");
             result.put("id", result.get("id").toString());
-
-            // result.put("created_at", simple.format((LocalDateTime)result.get("created_at")));
-            // result.put("updated_at", simple.format((LocalDateTime)result.get("updated_at")));
             return result;
         }else{
             return null;
@@ -81,33 +76,28 @@ public class CourseService {
     public Map<String, Object> getById(int id){
         Course course = dao.getCourseById(id);
         if(course != null){
-
             User user = userdao.getById(course.getUid());
-            Map<String, Object> result = JSON.parseObject(JSON.toJSONString(course), new TypeReference<Map<String, Object>>() {});
-            result.put("keywords_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/keywords");
-            result.put("anchors_url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name")+"/anchors");
-            Map<String, Object> userResult = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
-            userResult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.getUsername());
+            Map<String, Object> result = MapUtils.toMap(course);
+            fillCourseUrls(result, user.getUsername());
+            Map<String, Object> userResult = MapUtils.toMap(user);
+            userResult.put("url", baseUrl + "/users/"+user.getUsername());
             userResult.remove("password");
             result.put("user", userResult);
             result.remove("uid");
             result.put("id", result.get("id").toString());
-            
-            // result.put("created_at", simple.format((LocalDateTime)result.get("created_at")));
-            // result.put("updated_at", simple.format((LocalDateTime)result.get("updated_at")));
             return result;
         }else{
             return null;
         }
     } 
 
-    public Map<String, Object> modifyByUserAndName(String username, String Coursename, Map<String, Object> params){
+    public Map<String, Object> modifyByUserAndName(String username, String coursename, Map<String, Object> params){
         User user = userdao.getByUsername(username);
         dao.updateCourseByUidAndName(
             params.get("name").toString(), params.get("description").toString(), params.get("cover_url").toString(),
-            new Timestamp(System.currentTimeMillis()).toString(),user.getId(), Coursename);
+            new Timestamp(System.currentTimeMillis()).toString(),user.getId(), coursename);
         Map<String, Object> result = getByUserAndName(username, params.get("name").toString());
-        result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/courses/"+user.getUsername()+"/"+result.get("name"));
+        result.put("url", baseUrl + "/courses/"+user.getUsername()+"/"+result.get("name"));
         return result;
         
     }
@@ -115,5 +105,11 @@ public class CourseService {
     public void deleteByUserAndName(String username, String Coursename){
         User user = userdao.getByUsername(username);
         dao.deleteCourseByUidAndName(user.getId(), Coursename);
+    }
+
+    /** 填充 course 的 keywords_url/anchors_url 链接（baseUrl 可配置） */
+    private void fillCourseUrls(Map<String, Object> course, String username) {
+        course.put("keywords_url", baseUrl + "/courses/" + username + "/" + course.get("name") + "/keywords");
+        course.put("anchors_url", baseUrl + "/courses/" + username + "/" + course.get("name") + "/anchors");
     }
 }

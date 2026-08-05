@@ -32,6 +32,7 @@ import com.imct.alphaclass.dao.MediaTranslationDAO;
 import com.imct.alphaclass.dao.MediaWikiDAO;
 import com.imct.alphaclass.dao.PartDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 public class MediaService {
@@ -201,7 +202,15 @@ public class MediaService {
         User user = userdao.getByUsername(ownername);
         Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
         Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
-        List<Map<String, Object>> all_mediaresult = dao.getAllMediasByKid(keyword.getId());
+        return getMediasByKid(keyword.getId());
+    }
+
+    /**
+     * 按 keyword id 返回组装好的 media 列表（asset/anchor/color 嵌套 + type 专属信息）。
+     * 供 KeywordService 等复用，保证所有响应结构一致。
+     */
+    public List<Map<String, Object>> getMediasByKid(int kid) {
+        List<Map<String, Object>> all_mediaresult = dao.getAllMediasByKid(kid);
         for (int i = 0; i < all_mediaresult.size(); i++) {
             Media media = JSON.parseObject(JSON.toJSONString(all_mediaresult.get(i)), Media.class);
             all_mediaresult.set(i, buildMediaResponse(media));
@@ -402,21 +411,20 @@ public class MediaService {
      * 所有媒体接口（增删改查）共用同一组装逻辑，保证响应结构一致。
      */
     private Map<String, Object> buildMediaResponse(Media media) {
-        Map<String, Object> ac = JSON.parseObject(JSON.toJSONString(media), new TypeReference<Map<String, Object>>() {
-        });
+        Map<String, Object> ac = MapUtils.toMap(media);
         // asset 嵌套（uid/deleted_at 移除，id 转字符串）
         Map<String, Object> tempasset = null;
         if (media.getAssetid() != null) {
-            tempasset = toMap(assetdao.getAssetById(media.getAssetid()));
+            tempasset = MapUtils.toMap(assetdao.getAssetById(media.getAssetid()));
             tempasset.remove("uid");
             tempasset.remove("deleted_at");
             tempasset.put("id", tempasset.get("id").toString());
         }
         // anchor 嵌套（pos/euler 收拢，cid 移除，id 转字符串）
-        Map<String, Object> tempanchor = toMap(anchordao.getAnchorById(media.getAnchorid()));
+        Map<String, Object> tempanchor = MapUtils.toMap(anchordao.getAnchorById(media.getAnchorid()));
         tempanchor.remove("cid");
-        tempanchor.put("pos", nestVec(tempanchor, "pos", "pos"));
-        tempanchor.put("euler", nestVec(tempanchor, "euler", "euler"));
+        tempanchor.put("pos", MapUtils.nestVec(tempanchor, "pos", "pos"));
+        tempanchor.put("euler", MapUtils.nestVec(tempanchor, "euler", "euler"));
         tempanchor.put("id", tempanchor.get("id").toString());
         // color 嵌套
         Map<String, Object> tempcolor = new HashMap<String, Object>();
@@ -465,14 +473,14 @@ public class MediaService {
         } else if (type.equals("translation")) {
             MediaTranslation mediaTranslation = mediaTranslationDAO.getMediaTranslationById(mediaId);
             if (mediaTranslation != null) {
-                Map<String, Object> res = toMap(mediaTranslation);
+                Map<String, Object> res = MapUtils.toMap(mediaTranslation);
                 res.remove("id");
                 ac.put("media_translation", res);
             }
         } else if (type.equals("wiki")) {
             MediaWiki mediaWiki = mediaWikiDAO.getWikiinfoById(mediaId);
             if (mediaWiki != null) {
-                Map<String, Object> res = toMap(mediaWiki);
+                Map<String, Object> res = MapUtils.toMap(mediaWiki);
                 res.remove("id");
                 ac.put("media_wiki", res);
             }
@@ -487,31 +495,11 @@ public class MediaService {
         for (Map<String, Object> partmessage : all_partsresult) {
             partmessage.put("name", partmessage.get("part_name").toString());
             partmessage.remove("part_name");
-            partmessage.put("origin_pos", nestVec(partmessage, "originpos", "pos"));
-            partmessage.put("origin_euler", nestVec(partmessage, "origineuler", "euler"));
-            partmessage.put("target_pos", nestVec(partmessage, "targetpos", "pos"));
-            partmessage.put("target_euler", nestVec(partmessage, "targeteuler", "euler"));
+            partmessage.put("origin_pos", MapUtils.nestVec(partmessage, "originpos", "pos"));
+            partmessage.put("origin_euler", MapUtils.nestVec(partmessage, "origineuler", "euler"));
+            partmessage.put("target_pos", MapUtils.nestVec(partmessage, "targetpos", "pos"));
+            partmessage.put("target_euler", MapUtils.nestVec(partmessage, "targeteuler", "euler"));
         }
         return all_partsresult;
-    }
-
-    /**
-     * 将扁平坐标字段（如 originpos_x/pos_x）收拢为嵌套结构（如 pos）。
-     * from 为源字段前缀（pos/originpos/targetpos 等），to 为嵌套键前缀（pos/euler 等）。
-     */
-    private Map<String, Object> nestVec(Map<String, Object> source, String from, String to) {
-        Map<String, Object> nested = new HashMap<String, Object>();
-        nested.put(to + "_x", source.get(from + "_x"));
-        nested.put(to + "_y", source.get(from + "_y"));
-        nested.put(to + "_z", source.get(from + "_z"));
-        source.remove(from + "_x");
-        source.remove(from + "_y");
-        source.remove(from + "_z");
-        return nested;
-    }
-
-    private Map<String, Object> toMap(Object bean) {
-        return JSON.parseObject(JSON.toJSONString(bean), new TypeReference<Map<String, Object>>() {
-        });
     }
 }

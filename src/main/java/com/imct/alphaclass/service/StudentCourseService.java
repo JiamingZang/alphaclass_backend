@@ -6,17 +6,17 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.StudentCourse;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.CourseDAO;
 import com.imct.alphaclass.dao.StudentCourseDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 public class StudentCourseService {
@@ -27,6 +27,9 @@ public class StudentCourseService {
     @Resource
     private UserDAO userdao;
 
+    @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
+    private String baseUrl;
+
     public List<Map<String, Object>> getAllStudentsByCourse(String ownername,String coursename){
         User user = userdao.getByUsername(ownername);
         Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
@@ -34,11 +37,7 @@ public class StudentCourseService {
         List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
         for (Map<String,Object> sc : all_scresult) {
             User u = userdao.getById(Integer.valueOf(sc.get("sid").toString()));
-            Map<String, Object> uresult = JSON.parseObject(JSON.toJSONString(u), new TypeReference<Map<String, Object>>() {});
-            uresult.remove("password");
-            uresult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+uresult.get("username"));
-            uresult.put("id", uresult.get("id").toString());
-            result.add(uresult);
+            result.add(toUserMap(u));
         }
         return result;
     }
@@ -73,19 +72,24 @@ public class StudentCourseService {
         List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
         for (Map<String,Object> sc : all_scresult) {
             Course c = coursedao.getCourseById(Integer.valueOf(sc.get("cid").toString()));
-            Map<String, Object> cresult = JSON.parseObject(JSON.toJSONString(c), new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> cresult = MapUtils.toMap(c);
             User u = userdao.getById(Integer.valueOf(cresult.get("uid").toString()));
-            Map<String, Object> uresult = JSON.parseObject(JSON.toJSONString(u), new TypeReference<Map<String, Object>>() {});
-            uresult.remove("password");
-            uresult.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+uresult.get("username"));
-            uresult.put("id", uresult.get("id").toString());
+            Map<String, Object> uresult = toUserMap(u);
             cresult.remove("uid");cresult.remove("created_at");cresult.remove("updated_at");
             cresult.put("user", uresult);
-            cresult.put("course_url", "https://SERVER_IP_PLACEHOLDER/v2/"+uresult.get("username")+"/"+cresult.get("name"));
+            cresult.put("course_url", baseUrl + "/"+uresult.get("username")+"/"+cresult.get("name"));
             cresult.put("id", cresult.get("id").toString());
             result.add(cresult);
         }
         return result;
     }
 
+    /** 填充 user 的 url（baseUrl 可配置），并移除密码 */
+    private Map<String, Object> toUserMap(User u) {
+        Map<String, Object> uresult = MapUtils.toMap(u);
+        uresult.remove("password");
+        uresult.put("url", baseUrl + "/users/" + uresult.get("username"));
+        uresult.put("id", uresult.get("id").toString());
+        return uresult;
+    }
 }

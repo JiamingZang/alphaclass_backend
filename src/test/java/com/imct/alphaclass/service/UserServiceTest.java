@@ -9,11 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.UserDAO;
@@ -38,6 +40,11 @@ class UserServiceTest {
         user.setRole("teacher");
         user.setName("Alice");
         return user;
+    }
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
     }
 
     @Test

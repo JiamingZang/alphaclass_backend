@@ -12,8 +12,6 @@ import javax.annotation.Resource;
 
 import org.springframework.stereotype.Service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.Animation;
 import com.imct.alphaclass.bean.Asset;
 import com.imct.alphaclass.bean.MediaModel;
@@ -22,6 +20,7 @@ import com.imct.alphaclass.dao.AnimationDAO;
 import com.imct.alphaclass.dao.AssetDAO;
 import com.imct.alphaclass.dao.UserDAO;
 import com.imct.alphaclass.dao.MediaModelDAO;
+import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 public class AssetService {
@@ -105,7 +104,7 @@ public class AssetService {
         Asset assetResult = dao.getAssetById(id);
         MediaModel modelinfo = new MediaModel();
         // 响应内容
-        Map<String, Object> result = JSON.parseObject(JSON.toJSONString(assetResult), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> result = MapUtils.toMap(assetResult);
         result.remove("uid");
         result.put("id", result.get("id").toString());
         // 如果为model类型则添加modelinfo字段
@@ -200,7 +199,7 @@ public class AssetService {
         
 
         // 响应内容
-        Map<String, Object> result = JSON.parseObject(JSON.toJSONString(assetResult), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> result = MapUtils.toMap(assetResult);
         result.remove("uid");
         result.put("id", result.get("id").toString());
         // 如果为model类型则添加modelinfo字段
@@ -289,7 +288,7 @@ public class AssetService {
 
 
         Asset assetResult = dao.getAssetById(id);
-        Map<String, Object> result = JSON.parseObject(JSON.toJSONString(assetResult), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> result = MapUtils.toMap(assetResult);
         result.remove("uid");
         result.put("id", result.get("id").toString());
         // 如果为model类型则添加modelinfo字段

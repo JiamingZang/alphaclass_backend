@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.User;
@@ -52,6 +53,7 @@ class StudentCourseServiceTest {
         // lenient：getLoginUserCourses 不经过这两步查询
         lenient().when(userdao.getByUsername("alice")).thenReturn(owner);
         lenient().when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
+        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
     }
 
     @Test

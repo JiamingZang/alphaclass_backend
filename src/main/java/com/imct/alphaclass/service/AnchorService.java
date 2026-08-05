@@ -1,6 +1,5 @@
 package com.imct.alphaclass.service;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -8,14 +7,13 @@ import javax.annotation.Resource;
 
 import org.springframework.stereotype.Service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.Anchor;
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.AnchorDAO;
 import com.imct.alphaclass.dao.CourseDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 public class AnchorService {
@@ -32,14 +30,8 @@ public class AnchorService {
         List<Map<String, Object>> all_anchorresult = dao.getAllByCid(course.getId());
         for (Map<String,Object> ac : all_anchorresult) {
             ac.remove("cid");
-            Map<String, Object> temppos = new HashMap<String, Object>();
-            temppos.put("pos_x", ac.get("pos_x"));temppos.put("pos_y", ac.get("pos_y"));temppos.put("pos_z", ac.get("pos_z"));
-            ac.remove("pos_x");ac.remove("pos_y");ac.remove("pos_z");
-            ac.put("pos", temppos);
-            Map<String, Object> tempeuler = new HashMap<String, Object>();
-            tempeuler.put("euler_x", ac.get("euler_x"));tempeuler.put("euler_y", ac.get("euler_y"));tempeuler.put("euler_z", ac.get("euler_z"));
-            ac.remove("euler_x");ac.remove("euler_y");ac.remove("euler_z");
-            ac.put("euler", tempeuler);
+            ac.put("pos", MapUtils.nestVec(ac, "pos", "pos"));
+            ac.put("euler", MapUtils.nestVec(ac, "euler", "euler"));
             ac.put("id", ac.get("id").toString());
         }
         return all_anchorresult;
@@ -61,16 +53,10 @@ public class AnchorService {
         dao.addAnchor(anchor);
         
         anchor = dao.getAnchorById(anchor.getId());
-        Map<String, Object> ac = JSON.parseObject(JSON.toJSONString(anchor), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> ac = MapUtils.toMap(anchor);
         ac.remove("cid");
-        Map<String, Object> temppos = new HashMap<String, Object>();
-        temppos.put("pos_x", ac.get("pos_x"));temppos.put("pos_y", ac.get("pos_y"));temppos.put("pos_z", ac.get("pos_z"));
-        ac.remove("pos_x");ac.remove("pos_y");ac.remove("pos_z");
-        ac.put("pos", temppos);
-        Map<String, Object> tempeuler = new HashMap<String, Object>();
-        tempeuler.put("euler_x", ac.get("euler_x"));tempeuler.put("euler_y", ac.get("euler_y"));tempeuler.put("euler_z", ac.get("euler_z"));
-        ac.remove("euler_x");ac.remove("euler_y");ac.remove("euler_z");
-        ac.put("euler", tempeuler);
+        ac.put("pos", MapUtils.nestVec(ac, "pos", "pos"));
+        ac.put("euler", MapUtils.nestVec(ac, "euler", "euler"));
         ac.put("id", ac.get("id").toString());
         return ac;
     }
@@ -124,16 +110,10 @@ public class AnchorService {
                 anchor.getEuler_x(),anchor.getEuler_y(),anchor.getEuler_z(), anchorid);
             
             anchor = dao.getAnchorById(anchorid);
-            Map<String, Object> ac = JSON.parseObject(JSON.toJSONString(anchor), new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> ac = MapUtils.toMap(anchor);
             ac.remove("cid");
-            Map<String, Object> temppos = new HashMap<String, Object>();
-            temppos.put("pos_x", ac.get("pos_x"));temppos.put("pos_y", ac.get("pos_y"));temppos.put("pos_z", ac.get("pos_z"));
-            ac.remove("pos_x");ac.remove("pos_y");ac.remove("pos_z");
-            ac.put("pos", temppos);
-            Map<String, Object> tempeuler = new HashMap<String, Object>();
-            tempeuler.put("euler_x", ac.get("euler_x"));tempeuler.put("euler_y", ac.get("euler_y"));tempeuler.put("euler_z", ac.get("euler_z"));
-            ac.remove("euler_x");ac.remove("euler_y");ac.remove("euler_z");
-            ac.put("euler", tempeuler);
+            ac.put("pos", MapUtils.nestVec(ac, "pos", "pos"));
+            ac.put("euler", MapUtils.nestVec(ac, "euler", "euler"));
             ac.put("id", ac.get("id").toString());
             return ac;
         }else{

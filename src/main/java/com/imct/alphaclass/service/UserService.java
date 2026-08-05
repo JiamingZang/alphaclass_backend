@@ -5,24 +5,26 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 public class UserService {
     @Resource
     private UserDAO dao;
 
+    @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
+    private String baseUrl;
+
     public List<Map<String,Object>> findAll(){
         List<Map<String,Object>> users = dao.findAll();
         for (Map<String,Object> user : users) {
             user.put("id", user.get("id").toString());
-            user.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.get("username"));
-            user.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+user.get("username")+"/courses");
+            fillUrls(user);
         }
         return users;
     }
@@ -30,10 +32,9 @@ public class UserService {
     public Map<String,Object> register(User user){
         if (dao.getByUsername(user.getUsername())==null) {
             dao.register(user);
-            Map<String, Object> result = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> result = MapUtils.toMap(user);
             result.put("id", result.get("id").toString());
-            result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username"));
-            result.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username")+"/courses");
+            fillUrls(result);
             return result;
         }else{
             return null;
@@ -44,10 +45,9 @@ public class UserService {
     public Map<String, Object> getByUsername(String username){
         User user = dao.getByUsername(username);
         if (user!=null) {
-            Map<String, Object> result = JSON.parseObject(JSON.toJSONString(user), new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> result = MapUtils.toMap(user);
             result.put("id", result.get("id").toString());
-            result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username"));
-            result.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username")+"/courses");
+            fillUrls(result);
             return result;
         }else{
             return null;
@@ -57,10 +57,9 @@ public class UserService {
     public Map<String, Object> login(User user){
         User resultUser = dao.login(user);
         if (resultUser!=null){ 
-            Map<String, Object> result = JSON.parseObject(JSON.toJSONString(resultUser), new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> result = MapUtils.toMap(resultUser);
             result.put("id", result.get("id").toString());
-            result.put("url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username"));
-            result.put("courses_url", "https://SERVER_IP_PLACEHOLDER/v2/users/"+result.get("username")+"/courses");
+            fillUrls(result);
             return result;
         }else{
             return null;
@@ -98,5 +97,11 @@ public class UserService {
         }else{
             return null;
         }
+    }
+
+    /** 填充 user 的 url/courses_url 链接（baseUrl 可配置） */
+    private void fillUrls(Map<String, Object> user) {
+        user.put("url", baseUrl + "/users/" + user.get("username"));
+        user.put("courses_url", baseUrl + "/users/" + user.get("username") + "/courses");
     }
 }

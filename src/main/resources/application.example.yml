@@ -7,6 +7,8 @@ spring:
     password: ${DB_PASSWORD}
 server:
   port: ${SERVER_PORT:8080}
+app:
+  base-url: ${APP_BASE_URL:https://SERVER_IP_PLACEHOLDER/v2}
 ai:
   baidu:
     client-id: ${BAIDU_CLIENT_ID}

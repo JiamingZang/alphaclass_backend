@@ -15,30 +15,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import com.imct.alphaclass.bean.Anchor;
-import com.imct.alphaclass.bean.Asset;
 import com.imct.alphaclass.bean.Course;
 import com.imct.alphaclass.bean.Keyword;
-import com.imct.alphaclass.bean.MediaModel;
-import com.imct.alphaclass.bean.MediaTranslation;
-import com.imct.alphaclass.bean.MediaWiki;
 import com.imct.alphaclass.bean.User;
-import com.imct.alphaclass.dao.AnchorDAO;
-import com.imct.alphaclass.dao.AnimationDAO;
-import com.imct.alphaclass.dao.AssetDAO;
 import com.imct.alphaclass.dao.CourseDAO;
 import com.imct.alphaclass.dao.KeywordDAO;
-import com.imct.alphaclass.dao.MediaDAO;
-import com.imct.alphaclass.dao.MediaModelDAO;
-import com.imct.alphaclass.dao.MediaTranslationDAO;
-import com.imct.alphaclass.dao.MediaWikiDAO;
-import com.imct.alphaclass.dao.PartDAO;
 import com.imct.alphaclass.dao.UserDAO;
 import com.imct.alphaclass.exception.ServiceException;
 
 /**
- * KeywordService 行为基线测试：keyword CRUD 与 medias 嵌套响应组装契约。
+ * KeywordService 行为测试：keyword CRUD 与 medias 透传契约。
+ * media 嵌套组装逻辑由 MediaService 负责（getMediasByKid），此处仅验证透传。
  */
 @ExtendWith(MockitoExtension.class)
 class KeywordServiceTest {
@@ -50,21 +39,7 @@ class KeywordServiceTest {
     @Mock
     private CourseDAO coursedao;
     @Mock
-    private AssetDAO assetdao;
-    @Mock
-    private AnchorDAO anchordao;
-    @Mock
-    private MediaDAO mediadao;
-    @Mock
-    private MediaModelDAO mediamodeldao;
-    @Mock
-    private PartDAO partDAO;
-    @Mock
-    private AnimationDAO animationDAO;
-    @Mock
-    private MediaTranslationDAO mediaTranslationDAO;
-    @Mock
-    private MediaWikiDAO mediaWikiDAO;
+    private MediaService mediaservice;
 
     @InjectMocks
     private KeywordService service;
@@ -84,68 +59,35 @@ class KeywordServiceTest {
 
         when(userdao.getByUsername("alice")).thenReturn(user);
         when(coursedao.getCourseByUidAndName(1, "math")).thenReturn(course);
+        ReflectionTestUtils.setField(service, "baseUrl", "https://SERVER_IP_PLACEHOLDER/v2");
     }
 
-    private Anchor buildAnchor() {
-        Anchor anchor = new Anchor();
-        anchor.setId(400);
-        anchor.setCid(10);
-        anchor.setName("anchor1");
-        anchor.setPos_x(1.0f);
-        anchor.setPos_y(2.0f);
-        anchor.setPos_z(3.0f);
-        anchor.setEuler_x(10.0f);
-        anchor.setEuler_y(20.0f);
-        anchor.setEuler_z(30.0f);
-        return anchor;
+    private Keyword buildKeyword(int id, String name) {
+        Keyword keyword = new Keyword();
+        keyword.setId(id);
+        keyword.setCid(10);
+        keyword.setKeyword(name);
+        return keyword;
     }
 
-    private Asset buildAsset() {
-        Asset asset = new Asset();
-        asset.setId(300);
-        asset.setUid(1);
-        asset.setName("asset1");
-        asset.setType("model");
-        asset.setUrl("http://example.com/a.glb");
-        asset.setSize(1024);
-        return asset;
-    }
-
-    private Map<String, Object> buildMediaRow(int id, String type) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("id", id);
-        m.put("name", "media" + id);
-        m.put("type", type);
-        m.put("style", "default");
-        m.put("assetid", 300);
-        m.put("anchorid", 400);
-        m.put("kid", 100);
-        m.put("color_r", 1.0f);
-        m.put("color_g", 0.5f);
-        m.put("color_b", 0.25f);
-        return m;
-    }
-
-    private void mockMediaAssemble() {
-        when(anchordao.getAnchorById(400)).thenReturn(buildAnchor());
-        when(assetdao.getAssetById(300)).thenReturn(buildAsset());
+    private List<Map<String, Object>> buildMediaList() {
+        List<Map<String, Object>> mediaList = new ArrayList<>();
+        Map<String, Object> am = new HashMap<>();
+        am.put("id", "200");
+        am.put("name", "media200");
+        am.put("type", "model");
+        mediaList.add(am);
+        return mediaList;
     }
 
     @Test
     void addKeywordByCourse_returnsKeywordWithUrl() {
-        Keyword keyword = new Keyword();
-        keyword.setCid(10);
-        keyword.setKeyword("k2");
         doAnswer(invocation -> {
             Keyword k = invocation.getArgument(0);
             k.setId(101);
             return null;
         }).when(dao).addKeyword(any(Keyword.class));
-        Keyword saved = new Keyword();
-        saved.setId(101);
-        saved.setCid(10);
-        saved.setKeyword("k2");
-        when(dao.getKeywordById(101)).thenReturn(saved);
+        when(dao.getKeywordById(101)).thenReturn(buildKeyword(101, "k2"));
 
         Map<String, Object> result = service.addKeywordByCourse("alice", "math", new HashMap<String, Object>() {
             {
@@ -169,24 +111,9 @@ class KeywordServiceTest {
 
     @Test
     void getKeywordByCourse_returnsKeywordWithMedias() {
-        Keyword keyword = new Keyword();
-        keyword.setId(100);
-        keyword.setCid(10);
-        keyword.setKeyword("k1");
-        when(dao.getKeywordByCidAndName(10, "k1")).thenReturn(keyword);
-
-        List<Map<String, Object>> mediaList = new ArrayList<>();
-        mediaList.add(buildMediaRow(200, "model"));
-        when(mediadao.getAllMediasByKid(100)).thenReturn(mediaList);
-        mockMediaAssemble();
-        MediaModel mm = new MediaModel();
-        mm.setId(200);
-        mm.setAnime_to_play("take 001");
-        mm.setScale_x(1.0f);
-        mm.setScale_y(2.0f);
-        mm.setScale_z(3.0f);
-        when(mediamodeldao.getModelinfoById(200)).thenReturn(mm);
-        when(animationDAO.getAnimationsByModelinfoId(200)).thenReturn(new ArrayList<>());
+        when(dao.getKeywordByCidAndName(10, "k1")).thenReturn(buildKeyword(100, "k1"));
+        List<Map<String, Object>> mediaList = buildMediaList();
+        when(mediaservice.getMediasByKid(100)).thenReturn(mediaList);
 
         Map<String, Object> result = service.getKeywordByCourse("alice", "math", "k1");
 
@@ -196,41 +123,7 @@ class KeywordServiceTest {
         assertNull(result.get("cid"));
         List<Map<String, Object>> medias = (List<Map<String, Object>>) result.get("medias");
         assertEquals(1, medias.size());
-        Map<String, Object> am = medias.get(0);
-        assertEquals("200", am.get("id"));
-        assertEquals("take 001", am.get("anime_to_play"));
-        Map<String, Object> anchor = (Map<String, Object>) am.get("anchor");
-        assertEquals("400", anchor.get("id"));
-        Map<String, Object> pos = (Map<String, Object>) anchor.get("pos");
-        assertEquals(1.0, ((Number) pos.get("pos_x")).doubleValue());
-    }
-
-    @Test
-    void getKeywordByCourse_translationMedia_nestedTranslation() {
-        Keyword keyword = new Keyword();
-        keyword.setId(100);
-        keyword.setCid(10);
-        keyword.setKeyword("k1");
-        when(dao.getKeywordByCidAndName(10, "k1")).thenReturn(keyword);
-
-        List<Map<String, Object>> mediaList = new ArrayList<>();
-        mediaList.add(buildMediaRow(200, "translation"));
-        when(mediadao.getAllMediasByKid(100)).thenReturn(mediaList);
-        mockMediaAssemble();
-        MediaTranslation mt = new MediaTranslation();
-        mt.setId(200);
-        mt.setWord("apple");
-        mt.setTranslation_english("苹果");
-        when(mediaTranslationDAO.getMediaTranslationById(200)).thenReturn(mt);
-
-        Map<String, Object> result = service.getKeywordByCourse("alice", "math", "k1");
-
-        List<Map<String, Object>> medias = (List<Map<String, Object>>) result.get("medias");
-        Map<String, Object> am = medias.get(0);
-        Map<String, Object> translation = (Map<String, Object>) am.get("media_translation");
-        assertNotNull(translation);
-        assertEquals("apple", translation.get("word"));
-        assertNull(translation.get("id"));
+        assertEquals("200", medias.get(0).get("id"));
     }
 
     @Test
@@ -251,16 +144,7 @@ class KeywordServiceTest {
         k1.put("cid", 10);
         keywordRows.add(k1);
         when(dao.getAllKeywordsByCid(10)).thenReturn(keywordRows);
-
-        List<Map<String, Object>> mediaList = new ArrayList<>();
-        mediaList.add(buildMediaRow(200, "wiki"));
-        when(mediadao.getAllMediasByKid(100)).thenReturn(mediaList);
-        mockMediaAssemble();
-        MediaWiki mw = new MediaWiki();
-        mw.setId(200);
-        mw.setWord("apple");
-        mw.setWiki("苹果是一种水果");
-        when(mediaWikiDAO.getWikiinfoById(200)).thenReturn(mw);
+        when(mediaservice.getMediasByKid(100)).thenReturn(buildMediaList());
 
         List<Map<String, Object>> result = service.getAllKeywordsByCourse("alice", "math");
 
@@ -271,27 +155,15 @@ class KeywordServiceTest {
         assertNull(k.get("cid"));
         List<Map<String, Object>> medias = (List<Map<String, Object>>) k.get("medias");
         assertEquals(1, medias.size());
-        Map<String, Object> wiki = (Map<String, Object>) medias.get(0).get("media_wiki");
-        assertEquals("苹果是一种水果", wiki.get("wiki"));
+        assertEquals("200", medias.get(0).get("id"));
     }
 
     @Test
     void modifyKeywordByCourse_renamesKeyword() {
-        Keyword oldKeyword = new Keyword();
-        oldKeyword.setId(100);
-        oldKeyword.setCid(10);
-        oldKeyword.setKeyword("k1");
-        when(dao.getKeywordByCidAndName(10, "k1")).thenReturn(oldKeyword);
+        when(dao.getKeywordByCidAndName(10, "k1")).thenReturn(buildKeyword(100, "k1"));
         when(dao.updateKeywordByCidAndName(eq("k2"), eq(10), eq("k1"))).thenReturn(1);
-
-        Keyword renamed = new Keyword();
-        renamed.setId(100);
-        renamed.setCid(10);
-        renamed.setKeyword("k2");
-        when(dao.getKeywordByCidAndName(10, "k2")).thenReturn(renamed);
-
-        List<Map<String, Object>> mediaList = new ArrayList<>();
-        when(mediadao.getAllMediasByKid(100)).thenReturn(mediaList);
+        when(dao.getKeywordByCidAndName(10, "k2")).thenReturn(buildKeyword(100, "k2"));
+        when(mediaservice.getMediasByKid(100)).thenReturn(buildMediaList());
 
         Map<String, Object> params = new HashMap<>();
         params.put("keyword", "k2");
@@ -301,6 +173,6 @@ class KeywordServiceTest {
         assertNotNull(result);
         assertEquals("100", result.get("id"));
         assertEquals("k2", result.get("keyword"));
-        assertEquals(0, ((List<?>) result.get("medias")).size());
+        assertEquals(1, ((List<?>) result.get("medias")).size());
     }
 }
