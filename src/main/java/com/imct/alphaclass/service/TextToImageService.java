@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.bean.ServiceUsage;
 import com.imct.alphaclass.bean.TextToImageResult;
@@ -161,8 +162,11 @@ public class TextToImageService {
     private String generateImageRequest(String accessToken, String prompt) {
         String url = AiConstants.BAIDU_SDXL_URL + "?access_token=" + accessToken;
         OkHttpClient client = HttpClients.timeoutClient(60, 120);
-        String json = "{\"prompt\":\"" + prompt + "\",\"size\":\"1024x576\"}";
-        RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
+        // JSON 序列化而非字符串拼接：prompt 含引号/换行时不会破坏请求体
+        JSONObject bodyJson = new JSONObject();
+        bodyJson.put("prompt", prompt);
+        bodyJson.put("size", AiConstants.TEXT_TO_IMAGE_SIZE);
+        RequestBody body = RequestBody.create(bodyJson.toJSONString(), MediaType.get("application/json"));
         Request request = new Request.Builder()
                 .url(url)
                 .header("Content-Type", "application/json")

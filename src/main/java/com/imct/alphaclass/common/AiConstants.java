@@ -51,6 +51,11 @@ public final class AiConstants {
     public static final int VIDEO_FPS_HIGH = 60;
     public static final int VIDEO_FPS_DEFAULT = 30;
 
+    // ---------- 文生图参数 ----------
+
+    /** 百度 SD-XL 出图尺寸 */
+    public static final String TEXT_TO_IMAGE_SIZE = "1024x576";
+
     // ---------- 第三方 API 地址 ----------
 
     public static final String BAIDU_TOKEN_URL = "https://aip.baidubce.com/oauth/2.0/token";
