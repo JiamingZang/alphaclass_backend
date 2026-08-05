@@ -131,7 +131,7 @@ class UserServiceTest {
     }
 
     @Test
-    void change_password_success_returnsUserWithNewPassword() {
+    void changePassword_success_returnsUserWithNewPassword() {
         when(dao.updatePasswordByUsername(eq("newpwd"), eq("alice"), eq("oldpwd"))).thenReturn(true);
         when(dao.getByUsername("alice")).thenReturn(buildUser());
 
@@ -139,7 +139,7 @@ class UserServiceTest {
         params.put("password", "oldpwd");
         params.put("new_password", "newpwd");
 
-        Map<String, Object> result = service.change_password("alice", params);
+        Map<String, Object> result = service.changePassword("alice", params);
 
         assertNotNull(result);
         assertEquals("newpwd", result.get("password"));
@@ -147,25 +147,25 @@ class UserServiceTest {
     }
 
     @Test
-    void change_password_wrongOldPassword_returnsNull() {
+    void changePassword_wrongOldPassword_returnsNull() {
         when(dao.updatePasswordByUsername(anyString(), anyString(), anyString())).thenReturn(false);
 
         Map<String, String> params = new HashMap<>();
         params.put("password", "wrong");
         params.put("new_password", "newpwd");
 
-        assertNull(service.change_password("alice", params));
+        assertNull(service.changePassword("alice", params));
     }
 
     @Test
-    void change_profile_success_returnsUpdatedUser() {
+    void changeProfile_success_returnsUpdatedUser() {
         when(dao.updateNameByUsername("Alice2", "alice")).thenReturn(true);
         when(dao.getByUsername("alice")).thenReturn(buildUser());
 
         Map<String, String> params = new HashMap<>();
         params.put("name", "Alice2");
 
-        Map<String, Object> result = service.change_profile("alice", params);
+        Map<String, Object> result = service.changeProfile("alice", params);
 
         assertNotNull(result);
         assertEquals("Alice", result.get("name"));
@@ -173,8 +173,8 @@ class UserServiceTest {
     }
 
     @Test
-    void change_profile_missingName_returnsNull() {
-        assertNull(service.change_profile("alice", new HashMap<>()));
+    void changeProfile_missingName_returnsNull() {
+        assertNull(service.changeProfile("alice", new HashMap<>()));
         verify(dao, never()).updateNameByUsername(anyString(), anyString());
     }
 }

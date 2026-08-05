@@ -2,7 +2,6 @@ package com.imct.alphaclass.exception;
 
 
 import com.imct.alphaclass.common.JSONResult;
-import com.imct.alphaclass.common.Result;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;

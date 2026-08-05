@@ -75,13 +75,12 @@ public class MediaService {
         media.setType(params.get("type").toString());
         media.setStyle(params.get("style").toString());
         Map<String, Object> color = (Map<String, Object>) params.get("color");
-        media.setColor_r(Float.parseFloat("".equals(color.get("r").toString()) ? "0.0" : color.get("r").toString()));
-        media.setColor_g(Float.parseFloat("".equals(color.get("g").toString()) ? "0.0" : color.get("g").toString()));
-        media.setColor_b(Float.parseFloat("".equals(color.get("b").toString()) ? "0.0" : color.get("b").toString()));
+        media.setColor_r(MapUtils.parseFloat(color, "r"));
+        media.setColor_g(MapUtils.parseFloat(color, "g"));
+        media.setColor_b(MapUtils.parseFloat(color, "b"));
         media.setAssetid(params.get("asset_id") == null ? null : Integer
                 .parseInt(params.get("asset_id").toString()));
-        media.setAnchorid(Integer
-                .parseInt("".equals(params.get("anchor_id").toString()) ? "0" : params.get("anchor_id").toString()));
+        media.setAnchorid(MapUtils.parseInteger(params, "anchor_id"));
         media.setKid(keyword.getId());
         MediaModel mediaModel = new MediaModel();
         List<String> animations = new ArrayList<String>();
@@ -138,11 +137,10 @@ public class MediaService {
         media.setType(params.get("type").toString());
         media.setStyle(params.get("style").toString());
         Map<String, Object> color = (Map<String, Object>) params.get("color");
-        media.setColor_r(Float.parseFloat("".equals(color.get("r").toString()) ? "0.0" : color.get("r").toString()));
-        media.setColor_g(Float.parseFloat("".equals(color.get("g").toString()) ? "0.0" : color.get("g").toString()));
-        media.setColor_b(Float.parseFloat("".equals(color.get("b").toString()) ? "0.0" : color.get("b").toString()));
-        media.setAnchorid(Integer
-                .parseInt("".equals(params.get("anchor_id").toString()) ? "0" : params.get("anchor_id").toString()));
+        media.setColor_r(MapUtils.parseFloat(color, "r"));
+        media.setColor_g(MapUtils.parseFloat(color, "g"));
+        media.setColor_b(MapUtils.parseFloat(color, "b"));
+        media.setAnchorid(MapUtils.parseInteger(params, "anchor_id"));
         media.setKid(keyword.getId());
         dao.addMedia(media);
         media = dao.getMediaById(media.getId());
@@ -222,9 +220,9 @@ public class MediaService {
         float color_b;
         if (params.get("color") != null) {
             Map<String, Object> color = (Map<String, Object>) params.get("color");
-            color_r = Float.parseFloat("".equals(color.get("r").toString()) ? "0.0" : color.get("r").toString());
-            color_g = Float.parseFloat("".equals(color.get("g").toString()) ? "0.0" : color.get("g").toString());
-            color_b = Float.parseFloat("".equals(color.get("b").toString()) ? "0.0" : color.get("b").toString());
+            color_r = MapUtils.parseFloat(color, "r");
+            color_g = MapUtils.parseFloat(color, "g");
+            color_b = MapUtils.parseFloat(color, "b");
         } else {
             color_r = old_media.getColor_r();
             color_g = old_media.getColor_g();

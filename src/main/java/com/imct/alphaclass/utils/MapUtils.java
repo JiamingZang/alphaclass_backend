@@ -29,4 +29,25 @@ public final class MapUtils {
         source.remove(from + "_z");
         return nested;
     }
+
+    /**
+     * 将 Map 中字段安全解析为 float：字段缺失或空串时返回 0.0f，
+     * 统一替代各 service 中重复的 "".equals(x) ? "0.0" : x 防御写法。
+     */
+    public static float parseFloat(Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (value == null || "".equals(value.toString())) {
+            return 0.0f;
+        }
+        return Float.parseFloat(value.toString());
+    }
+
+    /** 将 Map 中字段安全解析为 int：字段缺失或空串时返回 0（同上，替代重复防御写法） */
+    public static int parseInteger(Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (value == null || "".equals(value.toString())) {
+            return 0;
+        }
+        return Integer.parseInt(value.toString());
+    }
 }

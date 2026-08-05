@@ -1,7 +1,9 @@
 package com.imct.alphaclass.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
@@ -20,88 +22,80 @@ public class UserService {
     @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
     private String baseUrl;
 
-    public List<Map<String,Object>> findAll(){
-        List<Map<String,Object>> users = dao.findAll();
-        for (Map<String,Object> user : users) {
-            user.put("id", user.get("id").toString());
-            fillUrls(user);
-        }
-        return users;
+    /** 查询全部用户（id 转字符串、url/courses_url 填充） */
+    public List<Map<String, Object>> findAll() {
+        return dao.findAll().stream()
+                .map(this::toUserMap)
+                .collect(Collectors.toList());
     }
-
-    public Map<String,Object> register(User user){
-        if (dao.getByUsername(user.getUsername())==null) {
-            dao.register(user);
-            Map<String, Object> result = MapUtils.toMap(user);
-            result.put("id", result.get("id").toString());
-            fillUrls(result);
-            return result;
-        }else{
+    /** 注册用户：用户名已存在时返回 null（由 Controller 转 401） */
+    public Map<String, Object> register(User user) {
+        if (dao.getByUsername(user.getUsername()) != null) {
             return null;
         }
-        
+        dao.register(user);
+        return toUserMap(user);
     }
 
-    public Map<String, Object> getByUsername(String username){
+    /** 按用户名查询用户；不存在时返回 null */
+    public Map<String, Object> getByUsername(String username) {
         User user = dao.getByUsername(username);
-        if (user!=null) {
-            Map<String, Object> result = MapUtils.toMap(user);
-            result.put("id", result.get("id").toString());
-            fillUrls(result);
-            return result;
-        }else{
-            return null;
-        }
+        return user == null ? null : toUserMap(user);
     }
 
-    public Map<String, Object> login(User user){
+    /** 登录校验（用户名+密码）；认证失败时返回 null */
+    public Map<String, Object> login(User user) {
         User resultUser = dao.login(user);
-        if (resultUser!=null){ 
-            Map<String, Object> result = MapUtils.toMap(resultUser);
-            result.put("id", result.get("id").toString());
-            fillUrls(result);
-            return result;
-        }else{
-            return null;
-        }
+        return resultUser == null ? null : toUserMap(resultUser);
     }
 
-    public User getById(int id){
+    /** 按 id 查询用户实体（供 JwtInterceptor 等内部使用，不组装响应） */
+    public User getById(int id) {
         return dao.getById(id);
     }
 
-    public Map<String, Object> change_password(String username,Map<String,String> params){
-        if (params.get("password") != null&&params.get("new_password")!=null){
-            if (dao.updatePasswordByUsername(params.get("new_password"), username, params.get("password"))){ 
-                Map<String, Object> result = getByUsername(username);
-                result.remove("courses_url");
-                result.put("password", params.get("new_password"));
-                return result;
-            }else{
-                return null;
-            }
-        }else{
+    /**
+     * 修改密码：校验旧密码通过后更新，失败（旧密码错误/参数缺失）时返回 null。
+     * 响应中的 password 为明文新密码，供前端生成 token 使用。
+     */
+    public Map<String, Object> changePassword(String username, Map<String, String> params) {
+        if (params.get("password") == null || params.get("new_password") == null) {
             return null;
         }
-    }
-
-    public Map<String, Object> change_profile(String username, Map<String, String> params){
-        if (params.get("name")!= null) {
-            if (dao.updateNameByUsername(params.get("name"), username)) {
-                Map<String, Object> result = getByUsername(username);
-                result.remove("courses_url");
-                return result;
-            }else{
-                return null;
-            }
-        }else{
+        if (!dao.updatePasswordByUsername(params.get("new_password"), username, params.get("password"))) {
             return null;
         }
+        Map<String, Object> result = getByUsername(username);
+        result.remove("courses_url");
+        result.put("password", params.get("new_password"));
+        return result;
     }
 
-    /** 填充 user 的 url/courses_url 链接（baseUrl 可配置） */
-    private void fillUrls(Map<String, Object> user) {
-        user.put("url", baseUrl + "/users/" + user.get("username"));
-        user.put("courses_url", baseUrl + "/users/" + user.get("username") + "/courses");
+    /** 修改昵称；参数缺失时返回 null */
+    public Map<String, Object> changeProfile(String username, Map<String, String> params) {
+        if (params.get("name") == null || !dao.updateNameByUsername(params.get("name"), username)) {
+            return null;
+        }
+        Map<String, Object> result = getByUsername(username);
+        result.remove("courses_url");
+        return result;
+    }
+
+    /** 用户响应公共组装：id 转字符串 + url/courses_url 填充（register/login/查询共用） */
+    private Map<String, Object> toUserMap(User user) {
+        return fillUserUrls(MapUtils.toMap(user));
+    }
+
+    /** 用户列表组装：DAO 直接返回 Map（findAll 专用，复制一份避免污染 DAO 对象） */
+    private Map<String, Object> toUserMap(Map<String, Object> userMap) {
+        return fillUserUrls(new HashMap<String, Object>(userMap));
+    }
+
+    /** 填充 id 字符串化及 url/courses_url 链接（baseUrl 可配置） */
+    private Map<String, Object> fillUserUrls(Map<String, Object> result) {
+        result.put("id", result.get("id").toString());
+        result.put("url", baseUrl + "/users/" + result.get("username"));
+        result.put("courses_url", baseUrl + "/users/" + result.get("username") + "/courses");
+        return result;
     }
 }

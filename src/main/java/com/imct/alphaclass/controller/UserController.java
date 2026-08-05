@@ -59,34 +59,30 @@ public class UserController {
         }
     }
 
+    /** 修改密码（需登录）：旧密码校验通过后更新，响应携带新 token 用密码 */
     @RequestMapping(value = "/user/actions/change-password", method = RequestMethod.POST)
-    public JSONResult change_password(@RequestBody Map<String,String> params){
+    public JSONResult changePassword(@RequestBody Map<String, String> params) {
         User user = TokenUtils.getCurrentUser();
         if (user != null) {
-            Map<String, Object> result = service.change_password(user.getUsername(),params);
-            if (result!=null) {
+            Map<String, Object> result = service.changePassword(user.getUsername(), params);
+            if (result != null) {
                 return JSONResult.successWithData(result);
-            }else{
-                return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
             }
-        }else{
-            return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
         }
+        return JSONResult.failWithMsg(Constants.CODE_401, "验证失败");
     }
 
-    @RequestMapping(value = "/user/actions/change-profile",method = RequestMethod.POST)
-    public JSONResult change_profile(@RequestBody Map<String,String> params){
+    /** 修改昵称（需登录） */
+    @RequestMapping(value = "/user/actions/change-profile", method = RequestMethod.POST)
+    public JSONResult changeProfile(@RequestBody Map<String, String> params) {
         User user = TokenUtils.getCurrentUser();
-        if (user != null){ 
-            Map<String, Object> result = service.change_profile(user.getUsername(),params);
-            if (result!=null) {
+        if (user != null) {
+            Map<String, Object> result = service.changeProfile(user.getUsername(), params);
+            if (result != null) {
                 return JSONResult.successWithData(result);
-            }else{
-                return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
             }
-        }else{
-            return JSONResult.failWithMsg(Constants.CODE_401,"验证失败");
         }
+        return JSONResult.failWithMsg(Constants.CODE_401, "验证失败");
     }
     
 }

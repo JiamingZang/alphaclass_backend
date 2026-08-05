@@ -36,17 +36,16 @@ public class AssetController {
 
     // 参数为 Map 类型以便前端直接传 JSON
     @RequestMapping(value = "/user/assets", method = RequestMethod.POST)
-    public JSONResult addCourse(@RequestBody Map<String, Object> params) {
-        Map<String, Object> result = service.addAsset(TokenUtils.getCurrentUser().getUsername(), params);
-        if (result != null) {
-            return JSONResult.successWithData(result);
-        } else {
-            return JSONResult.failWithMsg(Constants.CODE_400, "参数错误");
+    public JSONResult addAsset(@RequestBody Map<String, Object> params) {
+        User user = TokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
         }
+        return JSONResult.successWithData(service.addAsset(user.getUsername(), params));
     }
 
     @RequestMapping(value = "/user/assets/{id}", method = RequestMethod.DELETE)
-    public JSONResult deleteCourseById(@PathVariable int id) {
+    public JSONResult deleteById(@PathVariable int id) {
         service.deleteById(id);
         return JSONResult.customWithStatus(Constants.CODE_204);
     }

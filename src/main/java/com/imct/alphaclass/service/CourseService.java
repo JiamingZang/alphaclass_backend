@@ -55,44 +55,24 @@ public class CourseService {
     }
 
     /** 按用户名+课程名查询单个课程（user 嵌套、url 填充）；不存在时返回 null */
-    public Map<String, Object> getByUserAndName(String username,String coursename){
+    public Map<String, Object> getByUserAndName(String username, String coursename) {
         User user = requireUser(username);
-        Course course = dao.getCourseByUidAndName(user.getId(),coursename);
-        if (course!=null) {
-            Map<String, Object> result = MapUtils.toMap(course);
-            fillCourseUrls(result, user.getUsername());
-            Map<String, Object> userResult = MapUtils.toMap(user);
-            userResult.put("url", baseUrl + "/users/"+user.getUsername());
-            result.put("user", userResult);
-            result.remove("uid");
-            result.put("id", result.get("id").toString());
-            return result;
-        }else{
-            return null;
-        }
-    } 
+        Course course = dao.getCourseByUidAndName(user.getId(), coursename);
+        return course == null ? null : decorateSingleCourse(course, user);
+    }
 
     /** 按课程 id 查询（user 嵌套、url 填充）；不存在时返回 null */
-    public Map<String, Object> getById(int id){
+    public Map<String, Object> getById(int id) {
         Course course = dao.getCourseById(id);
-        if(course != null){
-            User user = userdao.getById(course.getUid());
-            if (user == null) {
-                throw new ServiceException(Constants.CODE_404, "用户不存在");
-            }
-            Map<String, Object> result = MapUtils.toMap(course);
-            fillCourseUrls(result, user.getUsername());
-            Map<String, Object> userResult = MapUtils.toMap(user);
-            userResult.put("url", baseUrl + "/users/"+user.getUsername());
-            userResult.remove("password");
-            result.put("user", userResult);
-            result.remove("uid");
-            result.put("id", result.get("id").toString());
-            return result;
-        }else{
+        if (course == null) {
             return null;
         }
-    } 
+        User user = userdao.getById(course.getUid());
+        if (user == null) {
+            throw new ServiceException(Constants.CODE_404, "用户不存在");
+        }
+        return decorateSingleCourse(course, user);
+    }
 
     /** 修改课程（name/description/cover_url 全量更新），返回更新后的课程响应 */
     public Map<String, Object> modifyByUserAndName(String username, String coursename, Map<String, Object> params){
@@ -122,12 +102,30 @@ public class CourseService {
     private Map<String, Object> decorateCourse(Map<String, Object> course, User user, DateTimeFormatter simple) {
         Map<String, Object> result = new HashMap<String, Object>(course);
         fillCourseUrls(result, user.getUsername());
-        result.put("user", MapUtils.toMap(user));
+        result.put("user", toUserMap(user));
         result.remove("uid");
         result.put("id", result.get("id").toString());
         result.put("created_at", simple.format((LocalDateTime) result.get("created_at")));
         result.put("updated_at", simple.format((LocalDateTime) result.get("updated_at")));
         return result;
+    }
+
+    /** 单条课程详情组装：user 嵌套 + url 填充 + uid 移除 + id 转字符串（getByUserAndName/getById 共用） */
+    private Map<String, Object> decorateSingleCourse(Course course, User user) {
+        Map<String, Object> result = MapUtils.toMap(course);
+        fillCourseUrls(result, user.getUsername());
+        result.put("user", toUserMap(user));
+        result.remove("uid");
+        result.put("id", result.get("id").toString());
+        return result;
+    }
+
+    /** 用户子对象公共组装：url 填充 + 密码移除（所有 user 嵌套统一，避免密码泄露） */
+    private Map<String, Object> toUserMap(User user) {
+        Map<String, Object> userResult = MapUtils.toMap(user);
+        userResult.put("url", baseUrl + "/users/" + user.getUsername());
+        userResult.remove("password");
+        return userResult;
     }
 
     /** 用户不存在时抛 404（替代链式 NPE） */
