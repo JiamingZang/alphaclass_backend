@@ -28,7 +28,10 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String token = request.getHeader("token");// 从 http 请求头中取出 token
-        if (Method.GET.toString().equals(request.getMethod())) {
+        // GET 接口的鉴权在 Controller 层完成（requireOwner/getCurrentUser 均会验签）；
+        // OPTIONS 为 CORS 预检请求，直接放行
+        if (Method.GET.toString().equals(request.getMethod())
+                || Method.OPTIONS.toString().equals(request.getMethod())) {
             return true;
         }
         // 如果不是映射到方法直接通过

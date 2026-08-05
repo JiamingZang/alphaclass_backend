@@ -154,7 +154,8 @@ public class TranslationService {
             if (i > 0) {
                 builder.append("&");
             }
-            builder.append(entry.getKey() + "=" + entry.getValue());
+            // 值统一 URL 编码：q 含中文/&/= 时不会破坏请求参数（签名按原始值计算）
+            builder.append(entry.getKey()).append("=").append(MapUtils.urlEncode(entry.getValue()));
             i++;
         }
 
@@ -168,18 +169,21 @@ public class TranslationService {
             Response response = client.newCall(request).execute();
             String res = response.body().string();
             WebDictResult res1 = JSON.parseObject(res, new TypeReference<WebDictResult>() {});
-            //获取webdict结果获取音标
-            String webDictUrl = res1.webdict.get("url");
-            request = new Request.Builder().url(webDictUrl).method("GET", null).build();
-            String res2 = client.newCall(request).execute().body().string();
-            Matcher matcher = Pattern
-                            .compile("<span class=\"phonetic\">\\[(.*?)\\]</span>")
-                            .matcher(res2);
-            String find = matcher.find() ? matcher.group(1) : "";
+            //获取webdict结果获取音标（链接可能缺失，缺失时跳过音标抓取）
+            String find = "";
+            String webDictUrl = res1.webdict == null ? null : res1.webdict.get("url");
+            if (webDictUrl != null && webDictUrl.length() > 0) {
+                request = new Request.Builder().url(webDictUrl).method("GET", null).build();
+                String res2 = client.newCall(request).execute().body().string();
+                Matcher matcher = Pattern
+                                .compile("<span class=\"phonetic\">\\[(.*?)\\]</span>")
+                                .matcher(res2);
+                find = matcher.find() ? matcher.group(1) : "";
+            }
             //获取例句结果
             String exampleSentenceUrl = AiConstants.YOUDAO_MOBILE_SINGLEDICT_URL
                                     + "?q="
-                                    + res1.query
+                                    + MapUtils.urlEncode(res1.query)
                                     + "&dict=blng_sents_part&le=eng&more=false";
             request = new Request.Builder().url(exampleSentenceUrl).method("GET", null).build();
             String exampleSentenceRes = client.newCall(request).execute().body().string();

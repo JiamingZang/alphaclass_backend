@@ -12,6 +12,9 @@ app:
   base-url: ${APP_BASE_URL:http://localhost:8080/v2}
   # 视频产物经本服务 /proxy 转发后的地址前缀（需与 base-url 同主机）
   video-proxy-prefix: ${VIDEO_PROXY_PREFIX:http://localhost:8080/proxy/}
+  cors:
+    # 跨域白名单（逗号分隔，默认全部放行；部署时通过 CORS_ALLOWED_ORIGINS 收紧）
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
 ai:
   baidu:
     client-id: ${BAIDU_CLIENT_ID}
