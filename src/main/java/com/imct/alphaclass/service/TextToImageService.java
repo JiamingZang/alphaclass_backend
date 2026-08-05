@@ -94,9 +94,9 @@ public class TextToImageService {
         return servicedao.getHistoryByUserId(userId);
     }
 
-    /** 删除一条文生图历史（软删除） */
-    public void deleteHistory(int id) {
-        servicedao.deleteTextToImageResultById(id);
+    /** 删除一条文生图历史（软删除，仅当前用户自己的记录） */
+    public void deleteHistory(int id, int userId) {
+        servicedao.deleteTextToImageResultById(id, userId);
     }
 
     /** 记录服务使用情况（文生图），失败时同样记录 */

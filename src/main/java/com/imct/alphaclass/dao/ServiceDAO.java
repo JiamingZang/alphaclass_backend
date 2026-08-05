@@ -53,18 +53,18 @@ public interface ServiceDAO {
     // @Update("update anchor set name = #{name}, pos_x = #{pos_x}, pos_y = #{pos_y},pos_z = #{pos_z},euler_x = #{euler_x},euler_y = #{euler_y},euler_z = #{euler_z} where id = #{id}")
     // public int updateAnchorById(String name,float pos_x,float pos_y,float pos_z,float euler_x,float euler_y,float euler_z, int id);
 
-    @Update("update video_generate_result set url = #{url}, task_status= #{status},thumbnail_url = #{thumbnailUrl} where request_id = #{requestId}")
-    public boolean updateVideoResultById(String status,String url, String thumbnailUrl, String requestId);
+    @Update("update video_generate_result set url = #{url}, task_status= #{status},thumbnail_url = #{thumbnailUrl} where request_id = #{requestId} and user_id = #{userId}")
+    public boolean updateVideoResultById(String status,String url, String thumbnailUrl, String requestId, int userId);
 
-    @Update("update model_generate_result set url = #{url}, task_status= #{status},thumbnail_url = #{thumbnailUrl},polygon_count = #{polygon_count},size = #{size} where request_id = #{requestId}")
-    public boolean updateModelResultById(String status,String url, String thumbnailUrl, int polygon_count, int size, String requestId);
+    @Update("update model_generate_result set url = #{url}, task_status= #{status},thumbnail_url = #{thumbnailUrl},polygon_count = #{polygon_count},size = #{size} where request_id = #{requestId} and user_id = #{userId}")
+    public boolean updateModelResultById(String status,String url, String thumbnailUrl, int polygon_count, int size, String requestId, int userId);
 
-    @Update("update video_generate_result set is_deleted=1 where id = #{id}")
-    public void deleteVideoResultById(int id);
+    @Update("update video_generate_result set is_deleted=1 where id = #{id} and user_id = #{userId}")
+    public void deleteVideoResultById(int id, int userId);
 
-    @Update("update model_generate_result set is_deleted=1 where id = #{id}")
-    public void deleteModelResultById(int id);
+    @Update("update model_generate_result set is_deleted=1 where id = #{id} and user_id = #{userId}")
+    public void deleteModelResultById(int id, int userId);
 
-    @Update("update text_to_image_result set is_deleted=1 where id = #{id}")
-    public void deleteTextToImageResultById(int id);
+    @Update("update text_to_image_result set is_deleted=1 where id = #{id} and usage_id in (select id from service_usage where user_id = #{userId})")
+    public void deleteTextToImageResultById(int id, int userId);
 }

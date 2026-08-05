@@ -39,16 +39,22 @@ public class TextToImageController {
         return JSONResult.successWithData(service.generateImage(prompt.toString(), user.getId()));
     }
 
-    /** 当前用户的文生图历史 */
+    /** 当前用户的文生图历史（无有效 token 时 401，防止伪造 token 越权读取） */
     @RequestMapping(value = "/services/text-to-image/history", method = RequestMethod.GET)
     public JSONResult getHistory() {
         User user = tokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+        }
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }
 
-    /** 删除一条文生图历史（软删除） */
+    /** 删除一条文生图历史（软删除，仅当前用户自己的记录） */
     @RequestMapping(value = "/services/text-to-image/history/{id}", method = RequestMethod.DELETE)
     public void deleteHistory(@PathVariable int id) {
-        service.deleteHistory(id);
+        User user = tokenUtils.getCurrentUser();
+        if (user != null) {
+            service.deleteHistory(id, user.getId());
+        }
     }
 }

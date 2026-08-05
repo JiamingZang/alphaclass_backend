@@ -114,8 +114,8 @@ public class ModelGenerationService {
         return resp;
     }
 
-    /** 前端回调更新任务结果（任务状态/产物地址/面数/大小） */
-    public void updateModelResult(Map<String, Object> params) {
+    /** 前端回调更新任务结果（任务状态/产物地址/面数/大小；仅允许更新当前用户的记录） */
+    public void updateModelResult(Map<String, Object> params, int userId) {
         String requestId = params.get("request_id").toString();
         String status = params.get("state").toString();
         String url = params.get("url").toString();
@@ -123,7 +123,7 @@ public class ModelGenerationService {
         // TODO: 前端传参键名疑似拼写错误（pologen_count），与前端确认后再修正
         int polygonCount = Integer.valueOf(params.get("pologen_count").toString());
         int size = Integer.valueOf(params.get("size").toString());
-        servicedao.updateModelResultById(status, url, thumbnailUrl, polygonCount, size, requestId);
+        servicedao.updateModelResultById(status, url, thumbnailUrl, polygonCount, size, requestId, userId);
     }
 
     /** 当前用户的模型生成历史（未删除，按创建时间倒序；created_at 为空时垫底，避免排序 NPE） */
@@ -135,9 +135,9 @@ public class ModelGenerationService {
                 .collect(Collectors.toList());
     }
 
-    /** 删除一条模型生成历史（软删除） */
-    public void deleteHistory(int id) {
-        servicedao.deleteModelResultById(id);
+    /** 删除一条模型生成历史（软删除，仅当前用户自己的记录） */
+    public void deleteHistory(int id, int userId) {
+        servicedao.deleteModelResultById(id, userId);
     }
 
     /** 提交混元 3D 快速建模任务（prompt 与 imageUrl 二选一） */

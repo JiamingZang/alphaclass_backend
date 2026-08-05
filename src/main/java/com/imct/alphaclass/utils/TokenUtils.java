@@ -27,14 +27,21 @@ public class TokenUtils {
             .sign(Algorithm.HMAC256(sign)); // 以 password 作为 token 的密钥
     }
 
-    /** 从当前请求 token 解析用户；无 token/token 非法/用户不存在时返回 null */
+    /**
+     * 从当前请求 token 解析用户；无 token/token 非法/签名不符/用户不存在时返回 null。
+     * 与 JwtInterceptor 同密钥验签（GET 请求不经过拦截器，伪造 token 在此被拦截）。
+     */
     public User getCurrentUser() {
         try {
             HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
             String token = request.getHeader("token");
             if (StrUtil.isNotBlank(token)) {
                 String userId = JWT.decode(token).getAudience().get(0);
-                return userService.getById(Integer.valueOf(userId));
+                User user = userService.getById(Integer.valueOf(userId));
+                if (user != null) {
+                    JWT.require(Algorithm.HMAC256(user.getPassword())).build().verify(token);
+                    return user;
+                }
             }
         } catch (Exception e) {
             return null;

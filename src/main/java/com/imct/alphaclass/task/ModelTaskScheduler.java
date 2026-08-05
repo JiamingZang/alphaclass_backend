@@ -45,7 +45,7 @@ public class ModelTaskScheduler {
             QueryHunyuanTo3DRapidJobResponse queryResponse = modelService
                     .queryModelGenerateRequest(r.getJob_id());
             if (AiConstants.TASK_FAIL.equals(queryResponse.getStatus())) {
-                servicedao.updateModelResultById(AiConstants.TASK_FAILED, "", "", 0, 0, r.getRequest_id());
+                servicedao.updateModelResultById(AiConstants.TASK_FAILED, "", "", 0, 0, r.getRequest_id(), r.getUser_id());
             } else if (AiConstants.TASK_DONE.equals(queryResponse.getStatus())) {
                 String tencentUrl = "";
                 String tencentPreviewUrl = "";
@@ -72,7 +72,7 @@ public class ModelTaskScheduler {
                     log.error("模型产物下载/上传失败: jobId={}, error={}", jobId, e.getMessage());
                 }
                 servicedao.updateModelResultById(AiConstants.TASK_FINISHED, ossUrl, ossThumbnailUrl, polygonCount, 0,
-                        r.getRequest_id());
+                        r.getRequest_id(), r.getUser_id());
             }
         } catch (TencentCloudSDKException e) {
             log.error("模型任务查询失败: jobId={}, error={}", r.getJob_id(), e.getMessage());

@@ -150,7 +150,7 @@ class GenerationHistoryServiceTest {
         List<GenVideoResult> result = videoService.getHistory(1);
 
         assertEquals(1, result.size());
-        verify(servicedao, never()).updateVideoResultById(any(), any(), any(), any());
+        verify(servicedao, never()).updateVideoResultById(any(), any(), any(), any(), anyInt());
     }
 
     /** 契约：video size 为字符串（表列为 varchar），created_at 为字符串 */

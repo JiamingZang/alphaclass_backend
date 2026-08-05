@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.VideoGenerationService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -42,16 +43,22 @@ public class VideoGenerationController {
         return JSONResult.successWithData(service.imageToVideo(params, user.getId()));
     }
 
-    /** 当前用户的视频生成历史（处理中任务实时轮询更新） */
+    /** 当前用户的视频生成历史（处理中任务实时轮询更新；无有效 token 时 401） */
     @RequestMapping(value = "/services/generate-video/history", method = RequestMethod.GET)
     public JSONResult getHistory() {
         User user = tokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+        }
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }
 
-    /** 删除一条视频生成历史（软删除） */
+    /** 删除一条视频生成历史（软删除，仅当前用户自己的记录） */
     @RequestMapping(value = "/services/generate-video/history/{id}", method = RequestMethod.DELETE)
     public void deleteHistory(@PathVariable int id) {
-        service.deleteHistory(id);
+        User user = tokenUtils.getCurrentUser();
+        if (user != null) {
+            service.deleteHistory(id, user.getId());
+        }
     }
 }

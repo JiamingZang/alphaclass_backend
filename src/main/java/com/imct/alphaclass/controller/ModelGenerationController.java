@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.ModelGenerationService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -42,23 +43,33 @@ public class ModelGenerationController {
         return JSONResult.successWithData(service.imageToModel(params, user.getId()));
     }
 
-    /** 前端回调更新任务结果 */
+    /** 前端回调更新任务结果（仅允许更新当前用户的记录） */
     @RequestMapping(value = "/services/generate-model/update", method = RequestMethod.POST)
     public JSONResult updateModelResult(@RequestBody Map<String, Object> params) {
-        service.updateModelResult(params);
+        User user = tokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+        }
+        service.updateModelResult(params, user.getId());
         return JSONResult.successWithData("");
     }
 
-    /** 当前用户的模型生成历史 */
+    /** 当前用户的模型生成历史（无有效 token 时 401，防止伪造 token 越权读取） */
     @RequestMapping(value = "/services/generate-model/history", method = RequestMethod.GET)
     public JSONResult getHistory() {
         User user = tokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+        }
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }
 
-    /** 删除一条模型生成历史（软删除） */
+    /** 删除一条模型生成历史（软删除，仅当前用户自己的记录） */
     @RequestMapping(value = "/services/generate-model/history/{id}", method = RequestMethod.DELETE)
     public void deleteHistory(@PathVariable int id) {
-        service.deleteHistory(id);
+        User user = tokenUtils.getCurrentUser();
+        if (user != null) {
+            service.deleteHistory(id, user.getId());
+        }
     }
 }

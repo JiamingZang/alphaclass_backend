@@ -55,7 +55,9 @@ public class UserController {
     public JSONResult login(@RequestBody User user){
         Map<String,Object> result = service.login(user);
         if (result!=null) {
-            String token = tokenUtils.getToken(result.get("id").toString(), result.get("password").toString());
+            // 取出并移除明文密码：仅用于签发 token，不随响应返回
+            String sign = result.remove("password").toString();
+            String token = tokenUtils.getToken(result.get("id").toString(), sign);
             result.put("token", token);
             return JSONResult.successWithData(result);
         }else{

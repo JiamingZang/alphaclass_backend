@@ -135,9 +135,12 @@ class UserServiceTest {
     }
 
     @Test
-    void changePassword_success_returnsUserWithNewPassword() {
+    void changePassword_success_returnsUserWithoutPassword() {
         when(dao.updatePasswordByUsername(eq("newpwd"), eq("alice"), eq("oldpwd"))).thenReturn(true);
-        when(dao.getByUsername("alice")).thenReturn(buildUser());
+        // 真实 DAO 的 getByUsername 不查询 password 字段，此处 mock 不带密码的用户
+        User withoutPassword = buildUser();
+        withoutPassword.setPassword(null);
+        when(dao.getByUsername("alice")).thenReturn(withoutPassword);
 
         Map<String, String> params = new HashMap<>();
         params.put("password", "oldpwd");
@@ -146,7 +149,7 @@ class UserServiceTest {
         Map<String, Object> result = service.changePassword("alice", params);
 
         assertNotNull(result);
-        assertEquals("newpwd", result.get("password"));
+        assertNull(result.get("password"));
         assertNull(result.get("courses_url"));
     }
 

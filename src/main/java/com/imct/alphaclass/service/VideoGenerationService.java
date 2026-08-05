@@ -100,7 +100,8 @@ public class VideoGenerationService {
                                 status,
                                 o.getUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix),
                                 o.getCoverImageUrl().replace(AiConstants.HTTPS_PREFIX, videoProxyPrefix),
-                                r.getRequest_id());
+                                r.getRequest_id(),
+                                r.getUser_id());
                         r.setTask_status(status);
                         r.setUrl(o.getUrl());
                         r.setThumbnail_url(o.getCoverImageUrl());
@@ -113,9 +114,9 @@ public class VideoGenerationService {
         return finalRes;
     }
 
-    /** 删除一条视频生成历史（软删除） */
-    public void deleteHistory(int id) {
-        servicedao.deleteVideoResultById(id);
+    /** 删除一条视频生成历史（软删除，仅当前用户自己的记录） */
+    public void deleteHistory(int id, int userId) {
+        servicedao.deleteVideoResultById(id, userId);
     }
 
     /** 组装提交结果响应（id + task_status） */

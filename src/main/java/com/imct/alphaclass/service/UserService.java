@@ -25,13 +25,15 @@ public class UserService {
                 .map(this::toUserMap)
                 .collect(Collectors.toList());
     }
-    /** 注册用户：用户名已存在时返回 null（由 Controller 转 401） */
+    /** 注册用户：用户名已存在时返回 null（由 Controller 转 401）；响应不含明文密码 */
     public Map<String, Object> register(User user) {
         if (dao.getByUsername(user.getUsername()) != null) {
             return null;
         }
         dao.register(user);
-        return toUserMap(user);
+        Map<String, Object> result = toUserMap(user);
+        result.remove("password");
+        return result;
     }
 
     /** 按用户名查询用户；不存在时返回 null */
@@ -53,7 +55,7 @@ public class UserService {
 
     /**
      * 修改密码：校验旧密码通过后更新，失败（旧密码错误/参数缺失）时返回 null。
-     * 响应中的 password 为明文新密码，供前端生成 token 使用。
+     * 响应不含明文密码，前端需重新登录获取新 token（旧 token 因签名密钥变更已失效）。
      */
     public Map<String, Object> changePassword(String username, Map<String, String> params) {
         if (params.get("password") == null || params.get("new_password") == null) {
@@ -64,7 +66,6 @@ public class UserService {
         }
         Map<String, Object> result = getByUsername(username);
         result.remove("courses_url");
-        result.put("password", params.get("new_password"));
         return result;
     }
 
