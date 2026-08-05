@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imct.alphaclass.bean.Asset;
+import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.AssetService;
 import com.imct.alphaclass.utils.TokenUtils;
@@ -28,7 +29,11 @@ public class AssetController {
         @RequestParam(value = "page",required = false,defaultValue = "1") int page,
         @RequestParam(value ="perpage",required = false,defaultValue = "5") int perpage,
         @RequestParam(name = "type",required = false) String tyoe){
-        return JSONResult.successWithData(service.getAllByUser(TokenUtils.getCurrentUser().getUsername(),page,perpage,tyoe));
+        User user = TokenUtils.getCurrentUser();
+        if (user == null) {
+            return JSONResult.failWithMsg("401", "");
+        }
+        return JSONResult.successWithData(service.getAllByUser(user.getUsername(),page,perpage,tyoe));
     }
 
     // 更改参数为map类型是为了能够解析出asset及modelinfo两种对象

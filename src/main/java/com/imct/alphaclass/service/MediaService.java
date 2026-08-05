@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.annotation.Resource;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
@@ -57,6 +58,7 @@ public class MediaService {
     @Resource
     private MediaWikiDAO mediaWikiDAO;
 
+    @Transactional
     public Map<String, Object> addMediaByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
         User user = userdao.getByUsername(ownername);
@@ -143,6 +145,7 @@ public class MediaService {
         return buildMediaResponse(media);
     }
 
+    @Transactional
     public Map<String, Object> addMediaTranslationOrWikiByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
         User user = userdao.getByUsername(ownername);
@@ -199,8 +202,9 @@ public class MediaService {
         Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
         Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
         List<Map<String, Object>> all_mediaresult = dao.getAllMediasByKid(keyword.getId());
-        for (Map<String, Object> am : all_mediaresult) {
-            buildMediaResponse(am);
+        for (int i = 0; i < all_mediaresult.size(); i++) {
+            Media media = JSON.parseObject(JSON.toJSONString(all_mediaresult.get(i)), Media.class);
+            all_mediaresult.set(i, buildMediaResponse(media));
         }
         return all_mediaresult;
     }
@@ -216,6 +220,7 @@ public class MediaService {
         return null;
     }
 
+    @Transactional
     public Map<String, Object> modifyMediaById(String coursename, String ownername, String keywordname, int media_id,
             Map<String, Object> params) {
         User user = userdao.getByUsername(ownername);
@@ -410,8 +415,8 @@ public class MediaService {
         // anchor 嵌套（pos/euler 收拢，cid 移除，id 转字符串）
         Map<String, Object> tempanchor = toMap(anchordao.getAnchorById(media.getAnchorid()));
         tempanchor.remove("cid");
-        tempanchor.put("pos", nestVec(tempanchor, "pos"));
-        tempanchor.put("euler", nestVec(tempanchor, "euler"));
+        tempanchor.put("pos", nestVec(tempanchor, "pos", "pos"));
+        tempanchor.put("euler", nestVec(tempanchor, "euler", "euler"));
         tempanchor.put("id", tempanchor.get("id").toString());
         // color 嵌套
         Map<String, Object> tempcolor = new HashMap<String, Object>();
@@ -482,26 +487,26 @@ public class MediaService {
         for (Map<String, Object> partmessage : all_partsresult) {
             partmessage.put("name", partmessage.get("part_name").toString());
             partmessage.remove("part_name");
-            partmessage.put("origin_pos", nestVec(partmessage, "originpos"));
-            partmessage.put("origin_euler", nestVec(partmessage, "origineuler"));
-            partmessage.put("target_pos", nestVec(partmessage, "targetpos"));
-            partmessage.put("target_euler", nestVec(partmessage, "targeteuler"));
+            partmessage.put("origin_pos", nestVec(partmessage, "originpos", "pos"));
+            partmessage.put("origin_euler", nestVec(partmessage, "origineuler", "euler"));
+            partmessage.put("target_pos", nestVec(partmessage, "targetpos", "pos"));
+            partmessage.put("target_euler", nestVec(partmessage, "targeteuler", "euler"));
         }
         return all_partsresult;
     }
 
     /**
-     * 将扁平坐标字段（如 pos_x/pos_y/pos_z）收拢为嵌套结构（如 pos）。
-     * prefix 为字段前缀（pos/euler/originpos/targetpos 等）。
+     * 将扁平坐标字段（如 originpos_x/pos_x）收拢为嵌套结构（如 pos）。
+     * from 为源字段前缀（pos/originpos/targetpos 等），to 为嵌套键前缀（pos/euler 等）。
      */
-    private Map<String, Object> nestVec(Map<String, Object> source, String prefix) {
+    private Map<String, Object> nestVec(Map<String, Object> source, String from, String to) {
         Map<String, Object> nested = new HashMap<String, Object>();
-        nested.put(prefix + "_x", source.get(prefix + "_x"));
-        nested.put(prefix + "_y", source.get(prefix + "_y"));
-        nested.put(prefix + "_z", source.get(prefix + "_z"));
-        source.remove(prefix + "_x");
-        source.remove(prefix + "_y");
-        source.remove(prefix + "_z");
+        nested.put(to + "_x", source.get(from + "_x"));
+        nested.put(to + "_y", source.get(from + "_y"));
+        nested.put(to + "_z", source.get(from + "_z"));
+        source.remove(from + "_x");
+        source.remove(from + "_y");
+        source.remove(from + "_z");
         return nested;
     }
 

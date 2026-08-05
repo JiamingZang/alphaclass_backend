@@ -464,6 +464,7 @@ class MediaServiceTest {
         params.put("media_translation", mt);
 
         Media inserted = buildMedia(200, "translation");
+        inserted.setAssetid(null);
         doAnswer(invocation -> {
             Media m = invocation.getArgument(0);
             m.setId(200);
@@ -513,6 +514,7 @@ class MediaServiceTest {
         params.put("media_wiki", mw);
 
         Media inserted = buildMedia(200, "wiki");
+        inserted.setAssetid(null);
         doAnswer(invocation -> {
             Media m = invocation.getArgument(0);
             m.setId(200);

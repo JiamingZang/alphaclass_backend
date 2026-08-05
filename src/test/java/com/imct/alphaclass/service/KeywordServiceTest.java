@@ -35,6 +35,7 @@ import com.imct.alphaclass.dao.MediaTranslationDAO;
 import com.imct.alphaclass.dao.MediaWikiDAO;
 import com.imct.alphaclass.dao.PartDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.exception.ServiceException;
 
 /**
  * KeywordService 行为基线测试：keyword CRUD 与 medias 嵌套响应组装契约。
@@ -230,6 +231,15 @@ class KeywordServiceTest {
         assertNotNull(translation);
         assertEquals("apple", translation.get("word"));
         assertNull(translation.get("id"));
+    }
+
+    @Test
+    void getKeywordByCourse_keywordNotFound_throws404() {
+        when(dao.getKeywordByCidAndName(10, "missing")).thenReturn(null);
+
+        ServiceException ex = assertThrows(ServiceException.class,
+                () -> service.getKeywordByCourse("alice", "math", "missing"));
+        assertEquals("404", ex.getCode());
     }
 
     @Test

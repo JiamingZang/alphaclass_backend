@@ -29,6 +29,7 @@ import com.imct.alphaclass.dao.MediaTranslationDAO;
 import com.imct.alphaclass.dao.MediaWikiDAO;
 import com.imct.alphaclass.dao.PartDAO;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.exception.ServiceException;
 
 @Service
 public class KeywordService {
@@ -232,11 +233,13 @@ public class KeywordService {
     public Map<String, Object> getKeywordByCourse(String ownername, String coursename, String keywordname) {
         User user = userdao.getByUsername(ownername);
         Course course = coursedao.getCourseByUidAndName(user.getId(), coursename);
-        Map<String, Object> result = JSON.parseObject(
-                JSON.toJSONString(dao.getKeywordByCidAndName(course.getId(), keywordname)),
+        Keyword keyword = dao.getKeywordByCidAndName(course.getId(), keywordname);
+        if (keyword == null) {
+            throw new ServiceException("404", "关键词不存在");
+        }
+        Map<String, Object> result = JSON.parseObject(JSON.toJSONString(keyword),
                 new TypeReference<Map<String, Object>>() {
                 });
-        ;
         result.remove("cid");
 
         List<Map<String, Object>> all_mediaresult = mediadao.getAllMediasByKid((int) result.get("id"));
