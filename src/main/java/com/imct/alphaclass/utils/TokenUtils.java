@@ -7,6 +7,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.imct.alphaclass.bean.User;
 import com.imct.alphaclass.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -20,10 +21,14 @@ public class TokenUtils {
 
     private final UserService userService;
 
+    /** token 有效期（小时，可配置，默认 5 小时） */
+    @Value("${app.jwt.expire-hours:5}")
+    private int expireHours;
+
     /** 签发 JWT：以用户密码作为签名密钥（audience 存 userId） */
     public String getToken(String userId, String sign) {
         return JWT.create().withAudience(userId) // 将 user id 保存到 token 里面
-            .withExpiresAt(DateUtil.offsetHour(new Date(), 5)) //五小时后token过期
+            .withExpiresAt(DateUtil.offsetHour(new Date(), expireHours)) // 默认五小时后token过期
             .sign(Algorithm.HMAC256(sign)); // 以 password 作为 token 的密钥
     }
 

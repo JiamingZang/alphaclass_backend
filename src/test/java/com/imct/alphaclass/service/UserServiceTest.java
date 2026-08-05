@@ -17,7 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.exception.ServiceException;
 
 /**
  * UserService 行为基线测试。
@@ -97,11 +99,37 @@ class UserServiceTest {
     @Test
     void register_duplicateUsername_returnsNull() {
         when(dao.getByUsername("alice")).thenReturn(buildUser());
-
-        User dup = new User();
-        dup.setUsername("alice");
+        User dup = buildUser(); // 参数完整，仅用户名已存在
 
         assertNull(service.register(dup));
+        verify(dao, never()).register(any());
+    }
+
+    @Test
+    void register_invalidRole_throws400() {
+        User hacker = buildUser();
+        hacker.setRole("admin");
+
+        ServiceException e = assertThrows(ServiceException.class, () -> service.register(hacker));
+        assertEquals(Constants.CODE_400, e.getCode());
+        verify(dao, never()).register(any());
+    }
+
+    @Test
+    void register_blankPassword_throws400() {
+        User blank = buildUser();
+        blank.setPassword(" ");
+
+        assertThrows(ServiceException.class, () -> service.register(blank));
+        verify(dao, never()).register(any());
+    }
+
+    @Test
+    void register_blankUsername_throws400() {
+        User blank = buildUser();
+        blank.setUsername("");
+
+        assertThrows(ServiceException.class, () -> service.register(blank));
         verify(dao, never()).register(any());
     }
 

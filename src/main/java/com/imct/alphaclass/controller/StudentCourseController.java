@@ -33,8 +33,7 @@ public class StudentCourseController {
     /** 批量添加学生（需登录，仅课程创建者可操作） */
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.POST)
     public JSONResult addStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
-        User user = tokenUtils.getCurrentUser();
-        if (user == null || !owner.equals(user.getUsername())) {
+        if (tokenUtils.requireOwner(owner) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
         service.addStudentsByUsername((List<String>)params.get("students"), owner, course);
@@ -44,8 +43,7 @@ public class StudentCourseController {
     /** 批量删除学生（需登录，仅课程创建者可操作） */
     @RequestMapping(value = "/courses/{owner}/{course}/students",method = RequestMethod.DELETE)
     public JSONResult deleteStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
-        User user = tokenUtils.getCurrentUser();
-        if (user == null || !owner.equals(user.getUsername())) {
+        if (tokenUtils.requireOwner(owner) == null) {
             return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
         }
         service.deleteStudentsByUsername((List<String>)params.get("students"), owner, course);

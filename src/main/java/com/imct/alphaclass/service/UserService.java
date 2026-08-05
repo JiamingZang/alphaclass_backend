@@ -10,12 +10,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import com.imct.alphaclass.bean.User;
+import com.imct.alphaclass.common.Constants;
 import com.imct.alphaclass.dao.UserDAO;
+import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.MapUtils;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+    /** 合法角色（注册白名单，防止自封任意角色） */
+    private static final String ROLE_TEACHER = "teacher";
+    private static final String ROLE_STUDENT = "student";
+
     private final UserDAO dao;
     private final AccessService access;
 
@@ -27,6 +33,7 @@ public class UserService {
     }
     /** 注册用户：用户名已存在时返回 null（由 Controller 转 401）；响应不含明文密码 */
     public Map<String, Object> register(User user) {
+        validateRegisterParams(user);
         if (dao.getByUsername(user.getUsername()) != null) {
             return null;
         }
@@ -34,6 +41,16 @@ public class UserService {
         Map<String, Object> result = toUserMap(user);
         result.remove("password");
         return result;
+    }
+
+    /** 注册参数校验：用户名/密码/角色必填，角色仅限 teacher/student */
+    private void validateRegisterParams(User user) {
+        boolean blankUsername = user.getUsername() == null || user.getUsername().trim().isEmpty();
+        boolean blankPassword = user.getPassword() == null || user.getPassword().trim().isEmpty();
+        boolean invalidRole = !ROLE_TEACHER.equals(user.getRole()) && !ROLE_STUDENT.equals(user.getRole());
+        if (blankUsername || blankPassword || invalidRole) {
+            throw new ServiceException(Constants.CODE_400, "用户名、密码或角色不合法");
+        }
     }
 
     /** 按用户名查询用户；不存在时返回 null */
