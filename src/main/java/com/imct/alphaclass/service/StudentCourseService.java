@@ -1,8 +1,8 @@
 package com.imct.alphaclass.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
@@ -32,55 +32,58 @@ public class StudentCourseService {
     @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
     private String baseUrl;
 
+    /** 查询课程下全部学生（学生 user 信息嵌套，密码移除、url 填充） */
     public List<Map<String, Object>> getAllStudentsByCourse(String ownername,String coursename){
         Course course = requireCourse(ownername, coursename);
-        List<Map<String, Object>> all_scresult = dao.getAllByCid(course.getId());
-        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
-        for (Map<String,Object> sc : all_scresult) {
-            User u = userdao.getById(Integer.valueOf(sc.get("sid").toString()));
-            result.add(toUserMap(u));
-        }
-        return result;
+        return dao.getAllByCid(course.getId()).stream()
+                .map(sc -> toUserMap(userdao.getById(Integer.valueOf(sc.get("sid").toString()))))
+                .collect(Collectors.toList());
     }
 
+    /** 按用户名批量添加学生（循环内逐个校验用户存在，整体事务回滚） */
     @Transactional
     public void addStudentsByUsername(List<String> students,String ownername,String coursename){
         Course course = requireCourse(ownername, coursename);
         int courseid = course.getId();
-        for (String studentname : students) {
+        students.forEach(studentname -> {
             User stu = requireUser(studentname);
             StudentCourse sc = new StudentCourse();
             sc.setSid(stu.getId());
             sc.setCid(courseid);
             dao.addStudentCourse(sc);
-        }
+        });
     }
 
+    /** 按用户名批量移除学生（整体事务回滚） */
     @Transactional
     public void deleteStudentsByUsername(List<String> students,String ownername,String coursename){
         Course course = requireCourse(ownername, coursename);
         int courseid = course.getId();
-        for (String studentname : students) {
+        students.forEach(studentname -> {
             User stu = requireUser(studentname);
             dao.deleteCourseByUidAndName(courseid, stu.getId());
-        }
+        });
     }
 
+    /** 查询登录学生选修的全部课程（user 嵌套 + course_url 填充） */
     public List<Map<String, Object>> getLoginUserCourses(int sid){
-        List<Map<String, Object>> all_scresult = dao.getAllBySid(sid);
-        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
-        for (Map<String,Object> sc : all_scresult) {
-            Course c = coursedao.getCourseById(Integer.valueOf(sc.get("cid").toString()));
-            Map<String, Object> cresult = MapUtils.toMap(c);
-            User u = userdao.getById(Integer.valueOf(cresult.get("uid").toString()));
-            Map<String, Object> uresult = toUserMap(u);
-            cresult.remove("uid");cresult.remove("created_at");cresult.remove("updated_at");
-            cresult.put("user", uresult);
-            cresult.put("course_url", baseUrl + "/"+uresult.get("username")+"/"+cresult.get("name"));
-            cresult.put("id", cresult.get("id").toString());
-            result.add(cresult);
-        }
-        return result;
+        return dao.getAllBySid(sid).stream()
+                .map(sc -> buildCourseMap(Integer.valueOf(sc.get("cid").toString())))
+                .collect(Collectors.toList());
+    }
+
+    /** 组装单条选课行：course 字段清理 + user 嵌套 + course_url */
+    private Map<String, Object> buildCourseMap(int cid) {
+        Course c = coursedao.getCourseById(cid);
+        Map<String, Object> cresult = MapUtils.toMap(c);
+        Map<String, Object> uresult = toUserMap(userdao.getById(Integer.valueOf(cresult.get("uid").toString())));
+        cresult.remove("uid");
+        cresult.remove("created_at");
+        cresult.remove("updated_at");
+        cresult.put("user", uresult);
+        cresult.put("course_url", baseUrl + "/" + uresult.get("username") + "/" + cresult.get("name"));
+        cresult.put("id", cresult.get("id").toString());
+        return cresult;
     }
 
     /** 填充 user 的 url（baseUrl 可配置），并移除密码 */

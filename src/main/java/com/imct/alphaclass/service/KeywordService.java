@@ -1,7 +1,9 @@
 package com.imct.alphaclass.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
@@ -32,6 +34,7 @@ public class KeywordService {
     @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
     private String baseUrl;
 
+    /** 新增关键词：url 由 baseUrl + 路径拼装，cid 不出现在响应中 */
     public Map<String, Object> addKeywordByCourse(String ownername, String coursename, Map<String, Object> params) {
         Course course = requireCourse(ownername, coursename);
         Keyword keyword = new Keyword();
@@ -47,31 +50,27 @@ public class KeywordService {
         return ac;
     }
 
+    /** 删除关键词（按课程归属 + 名称定位） */
     public void deleteKeywordById(String ownername, String coursename, String keyword) {
         Course course = requireCourse(ownername, coursename);
         dao.deleteKeywordByCidAndName(course.getId(), keyword);
     }
 
+    /** 查询课程下全部关键词（medias 嵌套、cid 移除、id 转字符串） */
     public List<Map<String, Object>> getAllKeywordsByCourse(String ownername, String coursename) {
         Course course = requireCourse(ownername, coursename);
-        List<Map<String, Object>> all_keywordresult = dao.getAllKeywordsByCid(course.getId());
-        for (Map<String, Object> ac : all_keywordresult) {
-            ac.remove("cid");
-            ac.put("medias", mediaservice.getMediasByKid(((Number) ac.get("id")).intValue()));
-            ac.put("id", ac.get("id").toString());
-        }
-        return all_keywordresult;
+        return dao.getAllKeywordsByCid(course.getId()).stream()
+                .map(ac -> decorateKeyword(ac))
+                .collect(Collectors.toList());
     }
 
+    /** 查询单个关键词（medias 嵌套）；不存在时抛 404 */
     public Map<String, Object> getKeywordByCourse(String ownername, String coursename, String keywordname) {
         Keyword keyword = requireKeyword(ownername, coursename, keywordname);
-        Map<String, Object> result = MapUtils.toMap(keyword);
-        result.remove("cid");
-        result.put("medias", mediaservice.getMediasByKid(keyword.getId()));
-        result.put("id", result.get("id").toString());
-        return result;
+        return decorateKeyword(MapUtils.toMap(keyword));
     }
 
+    /** 修改关键词名称（未传时沿用旧名），返回更新后的关键词响应 */
     public Map<String, Object> modifyKeywordByCourse(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
         Keyword keyword = requireKeyword(ownername, coursename, keywordname);
@@ -82,8 +81,14 @@ public class KeywordService {
 
         Map<String, Object> result = MapUtils.toMap(dao.getKeywordByCidAndName(keyword.getCid(),
                 params.get("keyword") == null ? keywordname : params.get("keyword").toString()));
+        return decorateKeyword(result);
+    }
+
+    /** 复制并装饰单条关键词行（medias 嵌套、cid 移除、id 转字符串） */
+    private Map<String, Object> decorateKeyword(Map<String, Object> ac) {
+        Map<String, Object> result = new HashMap<String, Object>(ac);
         result.remove("cid");
-        result.put("medias", mediaservice.getMediasByKid(keyword.getId()));
+        result.put("medias", mediaservice.getMediasByKid(((Number) result.get("id")).intValue()));
         result.put("id", result.get("id").toString());
         return result;
     }
@@ -101,6 +106,7 @@ public class KeywordService {
         return course;
     }
 
+    /** 关键词不存在时抛 404（user/course 链路由 requireCourse 兜底） */
     private Keyword requireKeyword(String ownername, String coursename, String keywordname) {
         Course course = requireCourse(ownername, coursename);
         Keyword keyword = dao.getKeywordByCidAndName(course.getId(), keywordname);

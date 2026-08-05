@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
@@ -61,6 +62,10 @@ public class MediaService {
     @Resource
     private MediaWikiDAO mediawikidao;
 
+    /**
+     * 按关键词新增媒体：先落 media 主记录，若带 media_model 则同步写
+     * modelinfo/animation/part 扩展表；返回与查询接口一致的组装响应。
+     */
     @Transactional
     public Map<String, Object> addMediaByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
@@ -92,9 +97,9 @@ public class MediaService {
             mediaModel.setScale_z(Float.valueOf(scale.get("scale_z").toString()));
 
             // 获取 animation 名称列表
-            animations = (ArrayList<String>) media_model.get("animations");
+            animations = (List<String>) media_model.get("animations");
             if (media_model.get("parts") != null) {
-                parts = (ArrayList<Map<String, Object>>) media_model.get("parts");
+                parts = (List<Map<String, Object>>) media_model.get("parts");
             }
         }
 
@@ -107,45 +112,23 @@ public class MediaService {
             mediaModel.setId(mid);
             mediamodeldao.addModelinfo(mediaModel);
             // 添加 animation
-            for (String animationName : animations) {
+            animations.forEach(animationName -> {
                 Animation tempAnimation = new Animation();
                 tempAnimation.setName(animationName);
                 tempAnimation.setMid(mid);
                 animationdao.addAnimation(tempAnimation);
-            }
+            });
             // 添加 part
-            for (Map<String, Object> partmessage : parts) {
-                Part part = new Part();
-                part.setMediaid(Integer.parseInt(partmessage.get("media_id").toString()));
-                part.setPartName(partmessage.get("name").toString());
-                part.setPart_index(Integer
-                        .parseInt(partmessage.get("part_index").toString()));
-                part.setPart_order(Integer
-                        .parseInt(partmessage.get("part_order").toString()));
-                Map<String, Object> originpos = (Map<String, Object>) partmessage.get("origin_pos");
-                part.setOriginPos_x(Float.valueOf(originpos.get("pos_x").toString()));
-                part.setOriginPos_y(Float.valueOf(originpos.get("pos_y").toString()));
-                part.setOriginPos_z(Float.valueOf(originpos.get("pos_z").toString()));
-                Map<String, Object> origineuler = (Map<String, Object>) partmessage.get("origin_euler");
-                part.setOriginEuler_x(Float.valueOf(origineuler.get("euler_x").toString()));
-                part.setOriginEuler_y(Float.valueOf(origineuler.get("euler_y").toString()));
-                part.setOriginEuler_z(Float.valueOf(origineuler.get("euler_z").toString()));
-                Map<String, Object> targetpos = (Map<String, Object>) partmessage.get("target_pos");
-                part.setTargetPos_x(Float.valueOf(targetpos.get("pos_x").toString()));
-                part.setTargetPos_y(Float.valueOf(targetpos.get("pos_y").toString()));
-                part.setTargetPos_z(Float.valueOf(targetpos.get("pos_z").toString()));
-                Map<String, Object> targeteuler = (Map<String, Object>) partmessage.get("target_euler");
-                part.setTargetEuler_x(Float.valueOf(targeteuler.get("euler_x").toString()));
-                part.setTargetEuler_y(Float.valueOf(targeteuler.get("euler_y").toString()));
-                part.setTargetEuler_z(Float.valueOf(targeteuler.get("euler_z").toString()));
-
-                partdao.addPart(part);
-            }
+            parts.stream().map(MediaService::toPart).forEach(partdao::addPart);
         }
 
         return buildMediaResponse(media);
     }
 
+    /**
+     * 按关键词新增 translation/wiki 类型媒体：先落 media 主记录，
+     * 再按 type 把专属信息写入 media_translation / media_wiki 扩展表。
+     */
     @Transactional
     public Map<String, Object> addMediaTranslationOrWikiByKeyword(String ownername, String coursename, String keywordname,
             Map<String, Object> params) {
@@ -163,6 +146,7 @@ public class MediaService {
         media.setKid(keyword.getId());
         dao.addMedia(media);
         media = dao.getMediaById(media.getId());
+        // 按媒体类型写入专属扩展表（translation/wiki 二选一）
         if (media.getType().equals("translation")) {
             Map<String, Object> media_translation = (Map<String, Object>) params.get("media_translation");
             MediaTranslation media_translation_obj = new MediaTranslation();
@@ -186,6 +170,7 @@ public class MediaService {
         return buildMediaResponse(media);
     }
 
+    /** 删除媒体：仅当媒体属于该关键词时删除（归属校验，防止越权） */
     public void deleteMediaById(String coursename, String ownername, String keywordname, int media_id) {
         Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
@@ -194,6 +179,7 @@ public class MediaService {
         }
     }
 
+    /** 查询关键词下全部媒体（内部按 kid 查询，复用 getMediasByKid 统一组装） */
     public List<Map<String, Object>> getAllMediasByKeyword(String ownername, String coursename, String keywordname) {
         Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         return getMediasByKid(keyword.getId());
@@ -202,16 +188,16 @@ public class MediaService {
     /**
      * 按 keyword id 返回组装好的 media 列表（asset/anchor/color 嵌套 + type 专属信息）。
      * 供 KeywordService 等复用，保证所有响应结构一致。
+     * DAO 返回的是行 Map，这里通过 JSON 中转转成 Media 实体，
+     * 避免手写 10+ 个 setter 拷贝，同时让后续组装统一走实体字段。
      */
     public List<Map<String, Object>> getMediasByKid(int kid) {
-        List<Map<String, Object>> all_mediaresult = dao.getAllMediasByKid(kid);
-        for (int i = 0; i < all_mediaresult.size(); i++) {
-            Media media = JSON.parseObject(JSON.toJSONString(all_mediaresult.get(i)), Media.class);
-            all_mediaresult.set(i, buildMediaResponse(media));
-        }
-        return all_mediaresult;
+        return dao.getAllMediasByKid(kid).stream()
+                .map(row -> buildMediaResponse(JSON.parseObject(JSON.toJSONString(row), Media.class)))
+                .collect(Collectors.toList());
     }
 
+    /** 查询单个媒体：仅当媒体属于该关键词时返回组装响应 */
     public Map<String, Object> getMediaById(String coursename, String ownername, String keywordname, int media_id) {
         Keyword keyword = requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
@@ -221,6 +207,11 @@ public class MediaService {
         return null;
     }
 
+    /**
+     * 修改媒体：主表字段未传时沿用旧值（部分更新语义）；
+     * media_model/media_translation/media_wiki 扩展数据有则更新、无则新增，
+     * 并在类型切换时清理不再适用的旧扩展数据。
+     */
     @Transactional
     public Map<String, Object> modifyMediaById(String coursename, String ownername, String keywordname, int media_id,
             Map<String, Object> params) {
@@ -252,6 +243,7 @@ public class MediaService {
                 mediatranslationdao.deleteMediaTranslationById(media_id);
             }
         }
+        // 主表更新：每个字段未传时沿用旧值；asset 关联在无 asset 的类型下强制置空
         dao.updateMediaById(
                 params.get("name") == null ? old_media.getName() : params.get("name").toString(),
                 params.get("type") == null ? old_media.getType() : params.get("type").toString(),
@@ -289,47 +281,21 @@ public class MediaService {
 
             // 更改 animation 表，思路是先删除对应 modelinfo 所有的 animation 再加上去
             if (model_info.get("animations") != null) {
-                List<String> animations = (ArrayList<String>) model_info.get("animations");
+                List<String> animations = (List<String>) model_info.get("animations");
                 animationdao.deleteAnimationByModelinfoId(media_id);
 
-                for (String animationName : animations) {
+                animations.forEach(animationName -> {
                     Animation tempAnimation = new Animation();
                     tempAnimation.setName(animationName);
                     tempAnimation.setMid(media_id);
                     animationdao.addAnimation(tempAnimation);
-                }
+                });
             }
             // 更改 part 表，思路同上
             if (model_info.get("parts") != null) {
-                List<Map<String, Object>> parts = (ArrayList<Map<String, Object>>) model_info.get("parts");
+                List<Map<String, Object>> parts = (List<Map<String, Object>>) model_info.get("parts");
                 partdao.deletePartsByMediaID(media_id);
-                for (Map<String, Object> partmessage : parts) {
-                    Part part = new Part();
-                    part.setMediaid(Integer.parseInt(partmessage.get("media_id").toString()));
-                    part.setPartName(partmessage.get("name").toString());
-                    part.setPart_index(Integer
-                            .parseInt(partmessage.get("part_index").toString()));
-                    part.setPart_order(Integer
-                            .parseInt(partmessage.get("part_order").toString()));
-                    Map<String, Object> originpos = (Map<String, Object>) partmessage.get("origin_pos");
-                    part.setOriginPos_x(Float.valueOf(originpos.get("pos_x").toString()));
-                    part.setOriginPos_y(Float.valueOf(originpos.get("pos_y").toString()));
-                    part.setOriginPos_z(Float.valueOf(originpos.get("pos_z").toString()));
-                    Map<String, Object> origineuler = (Map<String, Object>) partmessage.get("origin_euler");
-                    part.setOriginEuler_x(Float.valueOf(origineuler.get("euler_x").toString()));
-                    part.setOriginEuler_y(Float.valueOf(origineuler.get("euler_y").toString()));
-                    part.setOriginEuler_z(Float.valueOf(origineuler.get("euler_z").toString()));
-                    Map<String, Object> targetpos = (Map<String, Object>) partmessage.get("target_pos");
-                    part.setTargetPos_x(Float.valueOf(targetpos.get("pos_x").toString()));
-                    part.setTargetPos_y(Float.valueOf(targetpos.get("pos_y").toString()));
-                    part.setTargetPos_z(Float.valueOf(targetpos.get("pos_z").toString()));
-                    Map<String, Object> targeteuler = (Map<String, Object>) partmessage.get("target_euler");
-                    part.setTargetEuler_x(Float.valueOf(targeteuler.get("euler_x").toString()));
-                    part.setTargetEuler_y(Float.valueOf(targeteuler.get("euler_y").toString()));
-                    part.setTargetEuler_z(Float.valueOf(targeteuler.get("euler_z").toString()));
-
-                    partdao.addPart(part);
-                }
+                parts.stream().map(MediaService::toPart).forEach(partdao::addPart);
             }
         } else if (params.get("media_translation") != null) {
             Map<String, Object> media_translation = (Map<String, Object>) params.get("media_translation");
@@ -396,6 +362,32 @@ public class MediaService {
         return type != null && (type.equals("translation") || type.equals("wiki") || type.equals("assistant"));
     }
 
+    /** 将 part 请求参数转换为 Part 实体（addMediaByKeyword 与 modifyMediaById 共用） */
+    private static Part toPart(Map<String, Object> partmessage) {
+        Part part = new Part();
+        part.setMediaid(Integer.parseInt(partmessage.get("media_id").toString()));
+        part.setPartName(partmessage.get("name").toString());
+        part.setPart_index(Integer.parseInt(partmessage.get("part_index").toString()));
+        part.setPart_order(Integer.parseInt(partmessage.get("part_order").toString()));
+        Map<String, Object> originpos = (Map<String, Object>) partmessage.get("origin_pos");
+        part.setOriginPos_x(Float.valueOf(originpos.get("pos_x").toString()));
+        part.setOriginPos_y(Float.valueOf(originpos.get("pos_y").toString()));
+        part.setOriginPos_z(Float.valueOf(originpos.get("pos_z").toString()));
+        Map<String, Object> origineuler = (Map<String, Object>) partmessage.get("origin_euler");
+        part.setOriginEuler_x(Float.valueOf(origineuler.get("euler_x").toString()));
+        part.setOriginEuler_y(Float.valueOf(origineuler.get("euler_y").toString()));
+        part.setOriginEuler_z(Float.valueOf(origineuler.get("euler_z").toString()));
+        Map<String, Object> targetpos = (Map<String, Object>) partmessage.get("target_pos");
+        part.setTargetPos_x(Float.valueOf(targetpos.get("pos_x").toString()));
+        part.setTargetPos_y(Float.valueOf(targetpos.get("pos_y").toString()));
+        part.setTargetPos_z(Float.valueOf(targetpos.get("pos_z").toString()));
+        Map<String, Object> targeteuler = (Map<String, Object>) partmessage.get("target_euler");
+        part.setTargetEuler_x(Float.valueOf(targeteuler.get("euler_x").toString()));
+        part.setTargetEuler_y(Float.valueOf(targeteuler.get("euler_y").toString()));
+        part.setTargetEuler_z(Float.valueOf(targeteuler.get("euler_z").toString()));
+        return part;
+    }
+
     /** user/course/keyword 任一不存在时抛 404（替代链式 NPE） */
     private Course requireCourse(String ownername, String coursename) {
         User user = userdao.getByUsername(ownername);
@@ -409,6 +401,7 @@ public class MediaService {
         return course;
     }
 
+    /** 关键词不存在时抛 404（user/course 链路由 requireCourse 兜底） */
     private Keyword requireKeyword(String ownername, String coursename, String keywordname) {
         Course course = requireCourse(ownername, coursename);
         Keyword keyword = keyworddao.getKeywordByCidAndName(course.getId(), keywordname);
@@ -473,10 +466,9 @@ public class MediaService {
                 scale.put("scale_x", mediaModel.getScale_x());
                 scale.put("scale_y", mediaModel.getScale_y());
                 scale.put("scale_z", mediaModel.getScale_z());
-                List<String> animationsList = new ArrayList<String>();
-                for (Map<String, Object> animation : animationdao.getAnimationsByModelinfoId(mediaModel.getId())) {
-                    animationsList.add(animation.get("name").toString());
-                }
+                List<String> animationsList = animationdao.getAnimationsByModelinfoId(mediaModel.getId()).stream()
+                        .map(animation -> animation.get("name").toString())
+                        .collect(Collectors.toList());
                 ac.put("anime_to_play", mediaModel.getAnime_to_play());
                 ac.put("scale", scale);
                 ac.put("animations", animationsList);
@@ -504,14 +496,17 @@ public class MediaService {
      * targeteuler_x/y/z -> target_euler 嵌套，其余字段类似。
      */
     private List<Map<String, Object>> buildParts(List<Map<String, Object>> all_partsresult) {
-        for (Map<String, Object> partmessage : all_partsresult) {
-            partmessage.put("name", partmessage.get("part_name").toString());
-            partmessage.remove("part_name");
-            partmessage.put("origin_pos", MapUtils.nestVec(partmessage, "originpos", "pos"));
-            partmessage.put("origin_euler", MapUtils.nestVec(partmessage, "origineuler", "euler"));
-            partmessage.put("target_pos", MapUtils.nestVec(partmessage, "targetpos", "pos"));
-            partmessage.put("target_euler", MapUtils.nestVec(partmessage, "targeteuler", "euler"));
-        }
-        return all_partsresult;
+        return all_partsresult.stream()
+                .map(partmessage -> {
+                    Map<String, Object> result = new HashMap<String, Object>(partmessage);
+                    result.put("name", result.get("part_name").toString());
+                    result.remove("part_name");
+                    result.put("origin_pos", MapUtils.nestVec(result, "originpos", "pos"));
+                    result.put("origin_euler", MapUtils.nestVec(result, "origineuler", "euler"));
+                    result.put("target_pos", MapUtils.nestVec(result, "targetpos", "pos"));
+                    result.put("target_euler", MapUtils.nestVec(result, "targeteuler", "euler"));
+                    return result;
+                })
+                .collect(Collectors.toList());
     }
 }

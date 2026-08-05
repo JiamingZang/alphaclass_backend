@@ -1,7 +1,9 @@
 package com.imct.alphaclass.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
@@ -26,22 +28,20 @@ public class AnchorService {
     @Resource
     private UserDAO userdao;
 
-    public List<Map<String, Object>> getAllAnchorsByCourse(String ownername,String coursename){
+    /** 查询课程下全部锚点（pos/euler 嵌套、cid 移除、id 转字符串） */
+    public List<Map<String, Object>> getAllAnchorsByCourse(String ownername, String coursename) {
         Course course = requireCourse(ownername, coursename);
-        List<Map<String, Object>> all_anchorresult = dao.getAllByCid(course.getId());
-        for (Map<String,Object> ac : all_anchorresult) {
-            ac.remove("cid");
-            ac.put("pos", MapUtils.nestVec(ac, "pos", "pos"));
-            ac.put("euler", MapUtils.nestVec(ac, "euler", "euler"));
-            ac.put("id", ac.get("id").toString());
-        }
-        return all_anchorresult;
-    } 
+        return dao.getAllByCid(course.getId()).stream()
+                .map(AnchorService::decorateAnchor)
+                .collect(Collectors.toList());
+    }
 
-    public Map<String, Object> addAnchorByCourse(String ownername, String coursename, Map<String, Object> params){
+    /** 新增锚点：pos/euler 扁平字段入库，返回组装后的锚点对象 */
+    public Map<String, Object> addAnchorByCourse(String ownername, String coursename, Map<String, Object> params) {
         Course course = requireCourse(ownername, coursename);
         Anchor anchor = new Anchor();
-        anchor.setCid(course.getId());anchor.setName(params.get("name").toString());
+        anchor.setCid(course.getId());
+        anchor.setName(params.get("name").toString());
         Map<String, Object> pos = (Map<String, Object>)params.get("pos");
         anchor.setPos_x(Float.parseFloat("".equals(pos.get("pos_x").toString())?"0.0":pos.get("pos_x").toString()));
         anchor.setPos_y(Float.parseFloat("".equals(pos.get("pos_y").toString())?"0.0":pos.get("pos_y").toString()));
@@ -53,30 +53,22 @@ public class AnchorService {
         dao.addAnchor(anchor);
         
         anchor = dao.getAnchorById(anchor.getId());
-        Map<String, Object> ac = MapUtils.toMap(anchor);
-        ac.remove("cid");
-        ac.put("pos", MapUtils.nestVec(ac, "pos", "pos"));
-        ac.put("euler", MapUtils.nestVec(ac, "euler", "euler"));
-        ac.put("id", ac.get("id").toString());
-        return ac;
+        return decorateAnchor(MapUtils.toMap(anchor));
     }
 
-    public boolean deleteAnchorById(String ownername, String coursename, int anchorid){
+    /** 删除锚点：仅当锚点属于该课程时删除，返回是否删除成功 */
+    public boolean deleteAnchorById(String ownername, String coursename, int anchorid) {
         Anchor anchor = dao.getAnchorById(anchorid);
         Course course = requireCourse(ownername, coursename);
-        if (anchor!=null&&anchor.getCid()==course.getId()) {
+        if (anchor != null && anchor.getCid() == course.getId()) {
             dao.deleteAnchorById(anchorid);
-            if (dao.getAnchorById(anchorid)==null) {
-                return true;
-            }else{
-                return false;
-            }
-        }else{
-            return false;
+            return dao.getAnchorById(anchorid) == null;
         }
+        return false;
     }
 
-    public Map<String, Object> modifyAnchorById(String ownername, String coursename, int anchorid,Map<String, Object> params) {
+    /** 修改锚点：仅当锚点属于该课程时生效；未传 pos/euler 时沿用旧值 */
+    public Map<String, Object> modifyAnchorById(String ownername, String coursename, int anchorid, Map<String, Object> params) {
         Anchor old_anchor = dao.getAnchorById(anchorid);
         Course course = requireCourse(ownername, coursename);
         if (old_anchor!=null&&old_anchor.getCid()==course.getId()) {
@@ -108,12 +100,7 @@ public class AnchorService {
                 anchor.getEuler_x(),anchor.getEuler_y(),anchor.getEuler_z(), anchorid);
             
             anchor = dao.getAnchorById(anchorid);
-            Map<String, Object> ac = MapUtils.toMap(anchor);
-            ac.remove("cid");
-            ac.put("pos", MapUtils.nestVec(ac, "pos", "pos"));
-            ac.put("euler", MapUtils.nestVec(ac, "euler", "euler"));
-            ac.put("id", ac.get("id").toString());
-            return ac;
+            return decorateAnchor(MapUtils.toMap(anchor));
         }else{
             return null;
         }
@@ -130,5 +117,15 @@ public class AnchorService {
             throw new ServiceException(Constants.CODE_404, "课程不存在");
         }
         return course;
+    }
+
+    /** 复制并装饰单条锚点行（pos/euler 收拢嵌套、cid 移除、id 转字符串） */
+    private static Map<String, Object> decorateAnchor(Map<String, Object> ac) {
+        Map<String, Object> result = new HashMap<String, Object>(ac);
+        result.remove("cid");
+        result.put("pos", MapUtils.nestVec(result, "pos", "pos"));
+        result.put("euler", MapUtils.nestVec(result, "euler", "euler"));
+        result.put("id", result.get("id").toString());
+        return result;
     }
 }

@@ -1,8 +1,10 @@
 package com.imct.alphaclass.service;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -29,22 +31,16 @@ public class CourseService {
     @Value("${app.base-url:https://SERVER_IP_PLACEHOLDER/v2}")
     private String baseUrl;
 
+    /** 查询用户全部课程（user 嵌套、url 填充、时间格式化） */
     public List<Map<String, Object>> getAllByUser(String username){
         User user = requireUser(username);
         DateTimeFormatter simple = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        List<Map<String, Object>> courses= dao.getAllCourseByUid(user.getId());
-        for (Map<String,Object> course : courses) {
-            fillCourseUrls(course, user.getUsername());
-            Map<String, Object> userResult = MapUtils.toMap(user);
-            course.put("user", userResult);
-            course.remove("uid");
-            course.put("id", course.get("id").toString());
-            course.put("created_at", simple.format((LocalDateTime)course.get("created_at")));
-            course.put("updated_at", simple.format((LocalDateTime)course.get("updated_at")));
-        }
-        return courses;
+        return dao.getAllCourseByUid(user.getId()).stream()
+                .map(course -> decorateCourse(course, user, simple))
+                .collect(Collectors.toList());
     }
 
+    /** 新增课程：uid/时间戳由服务端填充，返回去除 uid 并填充 url 的响应 */
     public Map<String, Object> addCourse(String username,Course course){
         User user = requireUser(username);
         course.setUid(user.getId());
@@ -58,6 +54,7 @@ public class CourseService {
         return result;
     }
 
+    /** 按用户名+课程名查询单个课程（user 嵌套、url 填充）；不存在时返回 null */
     public Map<String, Object> getByUserAndName(String username,String coursename){
         User user = requireUser(username);
         Course course = dao.getCourseByUidAndName(user.getId(),coursename);
@@ -75,6 +72,7 @@ public class CourseService {
         }
     } 
 
+    /** 按课程 id 查询（user 嵌套、url 填充）；不存在时返回 null */
     public Map<String, Object> getById(int id){
         Course course = dao.getCourseById(id);
         if(course != null){
@@ -96,6 +94,7 @@ public class CourseService {
         }
     } 
 
+    /** 修改课程（name/description/cover_url 全量更新），返回更新后的课程响应 */
     public Map<String, Object> modifyByUserAndName(String username, String coursename, Map<String, Object> params){
         User user = requireUser(username);
         dao.updateCourseByUidAndName(
@@ -107,6 +106,7 @@ public class CourseService {
         
     }
 
+    /** 删除课程（按用户名+课程名定位，归属由 uid 保证） */
     public void deleteByUserAndName(String username, String Coursename){
         User user = requireUser(username);
         dao.deleteCourseByUidAndName(user.getId(), Coursename);
@@ -116,6 +116,18 @@ public class CourseService {
     private void fillCourseUrls(Map<String, Object> course, String username) {
         course.put("keywords_url", baseUrl + "/courses/" + username + "/" + course.get("name") + "/keywords");
         course.put("anchors_url", baseUrl + "/courses/" + username + "/" + course.get("name") + "/anchors");
+    }
+
+    /** 复制并装饰单条课程行（id 转字符串/时间格式化/user 嵌套/移除 uid），不污染 DAO 返回的列表 */
+    private Map<String, Object> decorateCourse(Map<String, Object> course, User user, DateTimeFormatter simple) {
+        Map<String, Object> result = new HashMap<String, Object>(course);
+        fillCourseUrls(result, user.getUsername());
+        result.put("user", MapUtils.toMap(user));
+        result.remove("uid");
+        result.put("id", result.get("id").toString());
+        result.put("created_at", simple.format((LocalDateTime) result.get("created_at")));
+        result.put("updated_at", simple.format((LocalDateTime) result.get("updated_at")));
+        return result;
     }
 
     /** 用户不存在时抛 404（替代链式 NPE） */
