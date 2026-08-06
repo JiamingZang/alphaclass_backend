@@ -5,7 +5,8 @@
 services:
   backend-v2:
     image: ghcr.io/jiamingzang/alphaclass-backend:${V2_TAG:?缺少 V2_TAG}
-    container_name: alphaclass-backend-v2
+    # 沿用用户熟悉的存量容器名（旧 tomcat9v2 停掉后由它接替）
+    container_name: tomcat9v2
     restart: unless-stopped
     ports:
       - "8081:8080"

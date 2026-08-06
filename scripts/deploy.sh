@@ -20,8 +20,9 @@ else
   echo "${TAG_KEY}=${TAG}" >> "$ENV_FILE"
 fi
 
-# 2. 拉镜像并重建容器
+# 2. 清理存量 tomcat9v2（无挂载的旧部署）避免容器名冲突，然后拉镜像重建容器
 cd "$BASE"
+docker rm -f tomcat9v2 2>/dev/null || true
 docker compose --env-file "$ENV_FILE" up -d --pull always backend-v2
 
 # 3. 健康检查：等待应用就绪（公开接口 /users 可达即视为启动成功；不用 /v3/api-docs，
@@ -36,5 +37,5 @@ for i in $(seq 1 30); do
 done
 
 echo "健康检查失败: $TAG（30 秒内未就绪）" >&2
-echo "查看日志: docker logs alphaclass-backend-v2 --tail 50" >&2
+echo "查看日志: docker logs tomcat9v2 --tail 50" >&2
 exit 1
