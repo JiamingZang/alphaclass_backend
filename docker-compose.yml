@@ -16,12 +16,12 @@ services:
     env_file:
       - .env.v2
 
-  # 生产环境（production）：8082 先行并行验证，验证通过后切换为 8080 接替原版 tomcat9
+  # 生产环境（production）：已切换接替原版 tomcat9，绑定 8080；回滚时改回 8082 与旧容器并行
   backend-prod:
     image: ghcr.io/jiamingzang/alphaclass-backend:${PROD_TAG:-latest}
     container_name: tomcat9prod
     restart: unless-stopped
     ports:
-      - "8082:8080"
+      - "8080:8080"
     env_file:
       - .env.prod
