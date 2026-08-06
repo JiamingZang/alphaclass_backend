@@ -1,0 +1,15 @@
+[
+	{
+		"created_at":null,
+		"id":700,
+		"is_deleted":0,
+		"prompt":null,
+		"request_id":null,
+		"size":null,
+		"task_status":"SUCCESS",
+		"thumbnail_url":"https://cdn.example.com/700.jpg",
+		"type":null,
+		"url":"https://cdn.example.com/700.mp4",
+		"user_id":0
+	}
+]

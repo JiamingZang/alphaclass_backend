@@ -1,0 +1,18 @@
+[
+	{
+		"created_at":null,
+		"id":600,
+		"is_deleted":0,
+		"job_id":null,
+		"polygon_count":null,
+		"prompt":null,
+		"prompt_image_url":null,
+		"request_id":null,
+		"size":null,
+		"task_status":"DONE",
+		"thumbnail_url":"https://cdn.example.com/600.jpg",
+		"type":null,
+		"url":"https://cdn.example.com/600.fbx",
+		"user_id":0
+	}
+]

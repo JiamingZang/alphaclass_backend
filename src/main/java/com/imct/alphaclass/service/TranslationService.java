@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.imct.alphaclass.common.AiConstants;
+import com.imct.alphaclass.common.Constants;
+import com.imct.alphaclass.exception.ServiceException;
 import com.imct.alphaclass.utils.HttpClients;
 import com.imct.alphaclass.utils.MapUtils;
 
@@ -49,15 +51,22 @@ public class TranslationService {
     /** 中文 → 英文翻译 */
     public YoudaoTranslationResult translateCN(String q) {
         Map<String, String> dic = getRequestMap(q, "zh-CHS", "en");//所有上传的参数将写入该字典中
-        return get(AiConstants.YOUDAO_API_URL, dic);
+        YoudaoTranslationResult result = get(AiConstants.YOUDAO_API_URL, dic);
+        if (result == null) {
+            throw new ServiceException(Constants.CODE_503, "翻译服务不可用");
+        }
+        return result;
     }
 
     /** 英文 → 中文翻译（含音标与例句） */
     public YoudaoTranslationResult translateEN(String q) {
         Map<String, String> dic = getRequestMap(q, "en", "zh-CHS");//所有上传的参数将写入该字典中
-        YoudaoTranslationResult res = get(AiConstants.YOUDAO_API_URL, dic);
-        res.exampleSentences = getExampleSentences(q);
-        return res;
+        YoudaoTranslationResult result = get(AiConstants.YOUDAO_API_URL, dic);
+        if (result == null) {
+            throw new ServiceException(Constants.CODE_503, "翻译服务不可用");
+        }
+        result.exampleSentences = getExampleSentences(q);
+        return result;
     }
 
     /** 组装有道 API 请求参数（v3 签名：appKey + 截断文本 + salt + curtime + appSecret 的 SHA-256） */

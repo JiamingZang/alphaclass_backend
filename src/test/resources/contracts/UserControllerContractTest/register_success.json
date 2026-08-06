@@ -1,0 +1,8 @@
+{
+	"role":"student",
+	"courses_url":"http://localhost:8080/v2/users/bob/courses",
+	"name":"Bob",
+	"id":"2",
+	"url":"http://localhost:8080/v2/users/bob",
+	"username":"bob"
+}

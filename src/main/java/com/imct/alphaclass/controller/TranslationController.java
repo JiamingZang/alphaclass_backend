@@ -31,11 +31,12 @@ public class TranslationController {
         return JSONResult.successWithData(res);
     }
 
-    /** 英文 → 中文：返回关键词、音标与例句 */
+    /** 英文 → 中文：返回关键词、音标与例句（音标缺失时置空串，不 500） */
     @RequestMapping(value = "/services/en-to-zh", method = RequestMethod.GET)
     public JSONResult translateENToZh(@RequestParam(name = "word", required = true) String word) {
         YoudaoTranslationResult translation = service.translateEN(word);
-        EN2CNResult res = new EN2CNResult(word, translation.basic.phonetic, translation.exampleSentences);
+        String phonetic = translation.basic == null ? "" : translation.basic.phonetic;
+        EN2CNResult res = new EN2CNResult(word, phonetic, translation.exampleSentences);
         return JSONResult.successWithData(res);
     }
 }
