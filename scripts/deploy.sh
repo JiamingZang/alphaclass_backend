@@ -30,10 +30,12 @@ docker compose --env-file "$ENV_FILE" up -d --pull always backend-v2
 
 # 4. 健康检查：等待应用就绪（公开接口 /users 可达即视为启动成功；不用 /v3/api-docs，
 #    因为 SWAGGER_ENABLED=false 时该端点 404 会误判）
-PORT=$(grep "^SERVER_PORT=" "$ENV_FILE" | cut -d= -f2)
+#    用 docker port 取宿主映射端口（SERVER_PORT 是容器内端口；curl 127.0.0.1:容器内端口
+#    会打到原版 tomcat9 的 8080，其 context 是 /alphaclassV2，/users 404 会误判失败）
+HOST_PORT=$(docker port tomcat9v2 8080/tcp | head -1 | sed 's/.*://')
 for i in $(seq 1 30); do
-  if curl -sf "http://127.0.0.1:${PORT}/users" >/dev/null 2>&1; then
-    echo "部署成功: $TAG（端口 $PORT）"
+  if curl -sf "http://127.0.0.1:${HOST_PORT}/users" >/dev/null 2>&1; then
+    echo "部署成功: $TAG（宿主端口 $HOST_PORT）"
     exit 0
   fi
   sleep 2
