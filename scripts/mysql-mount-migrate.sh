@@ -11,14 +11,26 @@ TS=$(date +%Y%m%d-%H%M%S)
 DATA_DIR=/opt/mysql-data/mysql
 BACKUP_DIR=/opt/mysql-backup
 
-echo "==> [1/6] 确认当前容器状态与挂载情况"
+echo "==> [1/6] 确认当前容器状态与挂载类型"
 docker ps --filter name=mysql-test --format '{{.Names}} {{.Status}}' || { echo "mysql-test 未运行，请先确认" >&2; exit 1; }
-MOUNTS=$(docker inspect mysql-test --format '{{json .Mounts}}')
-if [ "$MOUNTS" != "[]" ] && [ -n "$MOUNTS" ]; then
-  echo "  mysql-test 已有挂载: $MOUNTS，无需迁移，退出。"
-  exit 0
-fi
-echo "  确认无挂载，开始迁移。"
+MOUNT_TYPE=$(docker inspect mysql-test --format '{{range .Mounts}}{{.Type}}{{end}}')
+MOUNT_NAME=$(docker inspect mysql-test --format '{{range .Mounts}}{{.Name}}{{end}}')
+case "$MOUNT_TYPE" in
+  "")
+    echo "  无任何挂载（数据在容器可写层，最危险）→ 开始迁移。";;
+  bind)
+    echo "  已是绑定挂载，数据安全，无需迁移。"; exit 0;;
+  volume)
+    if [[ "$MOUNT_NAME" =~ ^[0-9a-f]{64}$ ]]; then
+      echo "  检测到匿名卷 $MOUNT_NAME（mysql 镜像自动创建）→ 开始迁移。"
+      echo "  说明：匿名卷能活过 docker rm，但卷名是哈希，docker volume prune 可能误删，"
+      echo "        且数据在系统盘 docker 目录内，迁移到绑定挂载 /opt/mysql-data 更安全。"
+    else
+      echo "  已是命名卷 $MOUNT_NAME，相对安全，无需迁移。"; exit 0
+    fi;;
+  *)
+    echo "  未知挂载类型: $MOUNT_TYPE" >&2; exit 1;;
+esac
 
 echo "==> [2/6] 保命备份：mysqldump 全库导出（容器仍在运行，一致性快照）"
 mkdir -p "$BACKUP_DIR"
@@ -54,6 +66,7 @@ for i in $(seq 1 30); do
     echo "迁移成功！当前挂载:"
     docker inspect mysql-test --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}'
     echo "备份文件保留: $BACKUP_FILE（建议验证无误后 7 天再删）"
+    echo "旧匿名卷 ${MOUNT_NAME:-} 保留作数据备份；确认无误后可执行 docker volume rm ${MOUNT_NAME:-} 释放"
     exit 0
   fi
   sleep 2
