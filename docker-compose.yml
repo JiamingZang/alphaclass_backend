@@ -1,21 +1,13 @@
 # 后端部署编排（服务器 /opt/alphaclass 下使用）
-# 用法：docker compose --env-file .env.staging up -d --pull always backend-staging
-# 说明：镜像 tag 由各环境的 <ENV>_TAG 变量控制（deploy.sh 更新），互不影响，支持按环境回滚
+# 用法：docker compose --env-file .env.v2 up -d --pull always backend-v2
+# 说明：镜像 tag 由 .env.v2 的 V2_TAG 控制（deploy.sh 更新）；回滚 = 旧 tag 重跑 deploy.sh
+# 环境形态：v2 = 测试环境（8081，CI 自动部署新版本）；原版（8080 tomcat9）保持不动 = 生产
 services:
-  backend-staging:
-    image: ghcr.io/jiamingzang/alphaclass-backend:${STAGING_TAG:?缺少 STAGING_TAG}
-    container_name: alphaclass-backend-staging
-    restart: unless-stopped
-    ports:
-      - "8082:8080"
-    env_file:
-      - .env.staging
-
-  backend-prod:
-    image: ghcr.io/jiamingzang/alphaclass-backend:${PROD_TAG:?缺少 PROD_TAG}
-    container_name: alphaclass-backend-prod
+  backend-v2:
+    image: ghcr.io/jiamingzang/alphaclass-backend:${V2_TAG:?缺少 V2_TAG}
+    container_name: alphaclass-backend-v2
     restart: unless-stopped
     ports:
       - "8081:8080"
     env_file:
-      - .env.prod
+      - .env.v2

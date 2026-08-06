@@ -2,7 +2,7 @@
 # 真实 application.yml 已被 .gitignore 忽略，不会提交到仓库。
 spring:
   datasource:
-    # 库名参数化：staging/prod 共用同一套配置，靠 DB_NAME 选库（alphaclass_staging / alphaclass）
+    # 库名参数化：v2 测试环境与本地开发可选不同库，默认 alphaclass
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:alphaclass}?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&autoReconnect=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD}

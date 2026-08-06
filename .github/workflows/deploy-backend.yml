@@ -1,4 +1,5 @@
-# 后端 CI/CD：PR 测试 → push 构建镜像推 GHCR → staging 自动部署 → prod 人工审批部署
+# 后端 CI/CD：PR 测试 → push 构建镜像推 GHCR → 部署 v2 测试环境
+# 环境形态：v2 = 测试环境（8081，CI 自动部署新版本）；原版（8080 tomcat9）保持不动 = 生产
 # 触发范围按路径过滤：只改前端/文档不触发后端流水线
 name: Deploy Backend
 
@@ -69,34 +70,17 @@ jobs:
         id: tag
         run: echo "tag=sha-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
 
-  # 阶段 3：自动部署独立测试环境（无需审批）
-  deploy-staging:
+  # 阶段 3：部署 v2 测试环境（自动部署，无审批；原版生产不受影响）
+  deploy-v2:
     needs: build
     if: github.event_name == 'push'
-    environment: staging
     runs-on: ubuntu-latest
     steps:
-      - name: 部署 staging
+      - name: 部署 v2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            bash /opt/alphaclass/scripts/deploy.sh staging ${{ needs.build.outputs.tag }}
-
-  # 阶段 4：部署线上（GitHub Environments 的 Required reviewers 审批门）
-  deploy-prod:
-    needs: build
-    if: github.event_name == 'push'
-    environment: production
-    runs-on: ubuntu-latest
-    steps:
-      - name: 部署 prod
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            bash /opt/alphaclass/scripts/deploy.sh prod ${{ needs.build.outputs.tag }}
+            bash /opt/alphaclass/scripts/deploy.sh ${{ needs.build.outputs.tag }}

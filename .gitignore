@@ -39,3 +39,6 @@ build/
 .env
 .env.*
 !.env.example
+
+### Unity WebGL 前端构建产物（含真实云服务密钥，禁止进仓库；如需版本管理请建独立前端仓库）
+AlphaClass_Editor_*/
