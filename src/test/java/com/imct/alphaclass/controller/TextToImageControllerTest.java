@@ -69,6 +69,16 @@ class TextToImageControllerTest {
     }
 
     @Test
+    void generateImage_wrongContentType_returns415() throws Exception {
+        mockMvc.perform(post("/services/text-to-image/generate-image")
+                .header("token", buildToken())
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("prompt=cat"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.message").value("不支持的 Content-Type"));
+    }
+
+    @Test
     void generateImage_success_returns200() throws Exception {
         Map<String, Object> result = new HashMap<>();
         result.put("id", 5);

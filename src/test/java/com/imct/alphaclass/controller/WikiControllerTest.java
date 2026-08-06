@@ -37,6 +37,20 @@ class WikiControllerTest {
     private UserService userService;
 
     @Test
+    void getProxy_missingUrl_returns400() throws Exception {
+        mockMvc.perform(get("/services/get-proxy"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("缺少必要参数: url"));
+    }
+
+    @Test
+    void getProxy_wrongMethod_returns405() throws Exception {
+        mockMvc.perform(post("/services/get-proxy").param("url", "https://example.com"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.message").value("请求方法不支持"));
+    }
+
+    @Test
     void getProxy_internalHost_returns400() throws Exception {
         when(service.getDataFromUrl("http://127.0.0.1:8080/secret"))
                 .thenThrow(new ServiceException(Constants.CODE_400, "不允许访问内网地址"));
