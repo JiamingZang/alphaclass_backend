@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
 # 后端部署脚本（服务器 /opt/alphaclass/scripts/deploy.sh，由 CI 调用）
-# 用法: deploy.sh <image-tag>
-# 例:   deploy.sh sha-1a2b3c4d
-# 行为: 更新 .env.v2 中 V2_TAG → 拉新镜像 → 重建 backend-v2 容器 → 健康检查
-# 回滚: 用旧 tag 重跑同一命令即可（tag 持久化在 .env.v2 里）
+# 用法: deploy.sh <image-tag> [env]
+# 例:   deploy.sh sha-1a2b3c4d            # 默认 staging（.env.v2 / tomcat9v2 / backend-v2）
+#       deploy.sh sha-1a2b3c4d prod       # 生产（.env.prod / tomcat9prod / backend-prod）
+# 行为: 更新环境文件的镜像 tag → 拉新镜像 → 重建对应容器 → 健康检查
+# 回滚: 用旧 tag 重跑同一命令即可（tag 持久化在环境文件里）
 set -euo pipefail
 
 TAG=$1
+ENV=${2:-staging}
 BASE=/opt/alphaclass
-ENV_FILE="$BASE/.env.v2"
-TAG_KEY="V2_TAG"
+
+case "$ENV" in
+  staging) ENV_FILE="$BASE/.env.v2"; CONTAINER=tomcat9v2;  SERVICE=backend-v2;  TAG_KEY=V2_TAG;;
+  prod)    ENV_FILE="$BASE/.env.prod"; CONTAINER=tomcat9prod; SERVICE=backend-prod; TAG_KEY=PROD_TAG;;
+  *) echo "未知环境: $ENV（可选 staging|prod）" >&2; exit 1;;
+esac
 
 [ -f "$ENV_FILE" ] || { echo "缺少 $ENV_FILE" >&2; exit 1; }
 
@@ -23,19 +29,19 @@ fi
 # 2. 先拉镜像验证可用（拉失败则不动现有容器，线上服务不中断）
 docker pull "ghcr.io/jiamingzang/alphaclass-backend:$TAG"
 
-# 3. 清理存量 tomcat9v2（无挂载的旧部署）避免容器名冲突，然后重建容器
+# 3. 清理存量同名容器避免冲突，然后重建容器
 cd "$BASE"
-docker rm -f tomcat9v2 2>/dev/null || true
-docker compose --env-file "$ENV_FILE" up -d --pull always backend-v2
+docker rm -f "$CONTAINER" 2>/dev/null || true
+docker compose --env-file "$ENV_FILE" up -d --pull always "$SERVICE"
 
 # 4. 健康检查：等待应用就绪（公开接口可达即视为启动成功；不用 /v3/api-docs，
 #    因为 SWAGGER_ENABLED=false 时该端点 404 会误判）
 #    注意：war 部署 context = war 文件名 = /alphaclassV2（非根路径）；且必须用 docker port
 #    取宿主映射端口（SERVER_PORT 是容器内端口；curl 127.0.0.1:8080 会打到原版 tomcat9）
-HOST_PORT=$(docker port tomcat9v2 8080/tcp | head -1 | sed 's/.*://')
+HOST_PORT=$(docker port "$CONTAINER" 8080/tcp | head -1 | sed 's/.*://')
 for i in $(seq 1 30); do
   if curl -sf "http://127.0.0.1:${HOST_PORT}/alphaclassV2/users" >/dev/null 2>&1; then
-    echo "部署成功: $TAG（宿主端口 $HOST_PORT，context /alphaclassV2）"
+    echo "部署成功: [$ENV] $TAG（宿主端口 $HOST_PORT，context /alphaclassV2）"
     exit 0
   fi
   sleep 2

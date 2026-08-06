@@ -3,6 +3,7 @@
 # 说明：镜像 tag 由 .env.v2 的 V2_TAG 控制（deploy.sh 更新）；回滚 = 旧 tag 重跑 deploy.sh
 # 环境形态：v2 = 测试环境（8081，CI 自动部署新版本）；原版（8080 tomcat9）保持不动 = 生产
 services:
+  # 测试环境（staging）：8081，CI push 自动部署新版本
   backend-v2:
     image: ghcr.io/jiamingzang/alphaclass-backend:${V2_TAG:?缺少 V2_TAG}
     # 沿用用户熟悉的存量容器名（旧 tomcat9v2 停掉后由它接替）
@@ -12,3 +13,13 @@ services:
       - "8081:8080"
     env_file:
       - .env.v2
+
+  # 生产环境（production）：8082 先行并行验证，验证通过后切换为 8080 接替原版 tomcat9
+  backend-prod:
+    image: ghcr.io/jiamingzang/alphaclass-backend:${PROD_TAG:?缺少 PROD_TAG}
+    container_name: tomcat9prod
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    env_file:
+      - .env.prod
