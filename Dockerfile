@@ -5,6 +5,9 @@ WORKDIR /build
 COPY pom.xml .
 RUN mvn -q -B dependency:go-offline || true
 COPY src ./src
+# application.yml 被 .gitignore 忽略（真实密钥不进仓库），CI 构建时用脱敏模板生成占位版；
+# 运行时由 .env.v2（compose env_file）注入 DB_PASSWORD、AI 密钥等真实环境变量
+RUN cp src/main/resources/application.example.yml src/main/resources/application.yml
 RUN mvn -q -B package -DskipTests
 
 # 运行阶段：与服务器存量容器同版本 tomcat:9.0.41-jdk8-corretto
