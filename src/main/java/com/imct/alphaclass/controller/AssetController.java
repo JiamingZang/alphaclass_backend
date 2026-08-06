@@ -16,7 +16,11 @@ import com.imct.alphaclass.common.JSONResult;
 import com.imct.alphaclass.service.AssetService;
 import com.imct.alphaclass.utils.TokenUtils;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
+@Tag(name = "资产", description = "当前用户的 3D 资产增删改查（分页）；需识别用户")
 public class AssetController {
     private final AssetService service;
     private final TokenUtils tokenUtils;
@@ -27,6 +31,7 @@ public class AssetController {
     }
 
     @RequestMapping(value = "/user/assets", method = RequestMethod.GET)
+    @Operation(summary = "资产列表", description = "需识别用户；query: page/perpage/type?；分页参数 <1 返回 400")
     public JSONResult getAllByUser(
         @RequestParam(value = "page", required = false, defaultValue = "1") int page,
         @RequestParam(value = "perpage", required = false, defaultValue = "5") int perpage,
@@ -43,6 +48,7 @@ public class AssetController {
 
     // 参数为 Map 类型以便前端直接传 JSON
     @RequestMapping(value = "/user/assets", method = RequestMethod.POST)
+    @Operation(summary = "新增资产", description = "需登录；body: {name, type?, url?, ...}，返回新增资产")
     public JSONResult addAsset(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
@@ -53,6 +59,7 @@ public class AssetController {
 
     /** 删除资产（需登录，仅资产归属者可删除） */
     @RequestMapping(value = "/user/assets/{id}", method = RequestMethod.DELETE)
+    @Operation(summary = "删除资产", description = "需登录且仅归属者；成功返回 204，不存在返回 404")
     public JSONResult deleteById(@PathVariable int id) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
@@ -66,6 +73,7 @@ public class AssetController {
 
     /** 修改资产（需登录，仅资产归属者可修改） */
     @RequestMapping(value = "/user/assets/{id}", method = RequestMethod.PUT)
+    @Operation(summary = "修改资产", description = "需登录且仅归属者；body: {name, type?, url?, ...}，不存在返回 404")
     public JSONResult modifyById(@PathVariable int id, @RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
@@ -81,6 +89,7 @@ public class AssetController {
 
     /** 查询单个资产（需登录，仅资产归属者可查看） */
     @RequestMapping(value = "/user/assets/{id}", method = RequestMethod.GET)
+    @Operation(summary = "资产详情", description = "需识别用户且仅归属者可查看；不存在返回 404")
     public JSONResult getById(@PathVariable int id) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {

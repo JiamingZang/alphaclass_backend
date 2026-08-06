@@ -121,6 +121,12 @@
 			<artifactId>hutool-all</artifactId>
 			<version>5.8.47</version>
 		</dependency>
+		<!-- OpenAPI 3 接口文档（Swagger UI），兼容 Spring Boot 2.7 / Java 8 -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-ui</artifactId>
+			<version>1.7.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>

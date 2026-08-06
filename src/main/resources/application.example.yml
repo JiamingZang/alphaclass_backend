@@ -18,6 +18,10 @@ app:
   cors:
     # 跨域白名单（逗号分隔，默认全部放行；部署时通过 CORS_ALLOWED_ORIGINS 收紧）
     allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+  # 存量密码迁移开关：默认关闭；仅当线上从明文登录切换到哈希登录时，
+  # 由运维显式设 PASSWORD_MIGRATION_ENABLED=true 随部署一次性执行（幂等，可重复启动）
+  password-migration:
+    enabled: ${PASSWORD_MIGRATION_ENABLED:false}
 ai:
   baidu:
     client-id: ${BAIDU_CLIENT_ID}
@@ -35,6 +39,13 @@ ai:
   youdao:
     app-key: ${YOUDAO_APP_KEY}
     app-secret: ${YOUDAO_APP_SECRET}
+springdoc:
+  # 接口文档（Swagger UI）开关：生产环境可用 SWAGGER_ENABLED=false 关闭
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 logging:
   level:
     root: INFO
