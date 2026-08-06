@@ -28,9 +28,9 @@ public class UserService {
 
     /**
      * 密码哈希：SHA-256，用户名作盐（salt = username + raw）。
-     * 库中不存明文；登录/改密均先哈希再比对/写入（包可见，供同包测试复用）。
+     * 库中不存明文；登录/改密均先哈希再比对/写入（public 供迁移任务与同包测试复用）。
      */
-    static String hashPassword(String username, String rawPassword) {
+    public static String hashPassword(String username, String rawPassword) {
         String salt = username == null ? "" : username;
         String raw = rawPassword == null ? "" : rawPassword;
         return DigestUtil.sha256Hex(salt + raw);

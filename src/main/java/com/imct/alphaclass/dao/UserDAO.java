@@ -31,6 +31,13 @@ public interface UserDAO {
     @Select("select * from user where id = #{id}")
     public User getById(int id);
 
+    // 存量密码迁移专用：全量读取（含密码列）与按 id 更新
+    @Select("select id,username,password from user")
+    public List<User> findAllWithPassword();
+
+    @Update("update user set password = #{new_password} where id = #{id}")
+    public boolean updatePasswordById(String new_password, int id);
+
     @Update("update user set password = #{new_password} where username = #{username} and password = #{password}")
     public boolean updatePasswordByUsername(String new_password, String username, String password);
 
