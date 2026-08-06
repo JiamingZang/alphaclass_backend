@@ -1,0 +1,7 @@
+# 行尾锁定：shell 脚本与 Docker 相关文件强制 LF（Windows 检出 CRLF 会导致服务器 bash 执行报错）
+*.sh text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.properties text eol=lf
