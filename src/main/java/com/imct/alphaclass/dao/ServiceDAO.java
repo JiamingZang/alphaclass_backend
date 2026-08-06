@@ -22,9 +22,6 @@ public interface ServiceDAO {
     @Select("select r.* from text_to_image_result r join service_usage u on r.usage_id = u.id where u.user_id = #{userId} and r.is_deleted = 0 order by r.created_at desc")
     public List<Map<String, Object>> getHistoryByUserId(int userId);
     
-    @Select("select * from service_usage where id = #{id}")
-    public Map<String, Object> getUsageById(int id);
-    
     @Insert("Insert into service_usage (user_id,service_id,created_at,is_successful) values(#{user_id},#{service_id},#{created_at},#{is_successful})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     public void addUsage(ServiceUsage usage);

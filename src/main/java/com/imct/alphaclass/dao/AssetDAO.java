@@ -23,14 +23,8 @@ public interface AssetDAO {
     @Select("select * from asset where id = #{id}")
     public Asset getAssetById(int id);
 
-    @Update("update asset set name = #{new_name},updated_at = #{updated_at} where id = #{id}")
-    public int updateAssetById(String new_name, String updated_at,int id);
-
     @Update("update asset set name = #{new_name},updated_at = #{updated_at} where id = #{id} and uid = #{uid}")
     public int updateAssetByIdAndUid(String new_name, String updated_at, int id, int uid);
-
-    @Update("update asset set deleted_at = #{deleted_at} where id = #{id}")
-    public int deleteAssetById(String deleted_at, int id);
 
     @Update("update asset set deleted_at = #{deleted_at} where id = #{id} and uid = #{uid}")
     public int deleteAssetByIdAndUid(String deleted_at, int id, int uid);
