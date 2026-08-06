@@ -38,7 +38,8 @@ jobs:
           java-version: '8'
           cache: maven
       - name: 全量测试
-        run: ./mvnw -B test
+        # 用 bash 执行（不依赖 mvnw 可执行位，Windows 提交的文件权限位可能丢失）
+        run: bash ./mvnw -B test
 
   # 阶段 2：构建镜像并推送 GHCR（仅 push；tag = commit SHA 前 8 位）
   build:
