@@ -6,19 +6,20 @@ name: Deploy Backend
 on:
   push:
     branches: [master]
-    paths:
-      - 'src/**'
-      - 'pom.xml'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'scripts/**'
-      - '.github/workflows/deploy-backend.yml'
+    # 只忽略文档类改动；代码/配置/脚本任何变化都触发
+    paths-ignore:
+      - '*.md'
+      - '*.txt'
+      - '.gitignore'
+      - '.gitattributes'
+      - 'HELP.md'
   pull_request:
     branches: [master]
     paths:
       - 'src/**'
       - 'pom.xml'
       - 'Dockerfile'
+  workflow_dispatch:
 
 concurrency:
   group: backend-${{ github.ref }}
