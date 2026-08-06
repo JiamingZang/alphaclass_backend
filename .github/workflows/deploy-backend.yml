@@ -1,0 +1,102 @@
+# 后端 CI/CD：PR 测试 → push 构建镜像推 GHCR → staging 自动部署 → prod 人工审批部署
+# 触发范围按路径过滤：只改前端/文档不触发后端流水线
+name: Deploy Backend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'scripts/**'
+      - '.github/workflows/deploy-backend.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - 'Dockerfile'
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 阶段 1：测试（PR 与 push 都跑，不回归就放行）
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+      - name: 全量测试
+        run: ./mvnw -B test
+
+  # 阶段 2：构建镜像并推送 GHCR（仅 push；tag = commit SHA 前 8 位）
+  build:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 构建并推送镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/jiamingzang/alphaclass-backend:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 输出短 tag
+        id: tag
+        run: echo "tag=sha-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+  # 阶段 3：自动部署独立测试环境（无需审批）
+  deploy-staging:
+    needs: build
+    if: github.event_name == 'push'
+    environment: staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: 部署 staging
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            bash /opt/alphaclass/scripts/deploy.sh staging ${{ needs.build.outputs.tag }}
+
+  # 阶段 4：部署线上（GitHub Environments 的 Required reviewers 审批门）
+  deploy-prod:
+    needs: build
+    if: github.event_name == 'push'
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - name: 部署 prod
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            bash /opt/alphaclass/scripts/deploy.sh prod ${{ needs.build.outputs.tag }}

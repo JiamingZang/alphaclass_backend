@@ -74,6 +74,12 @@
 			<version>2.3.2</version>
 		</dependency>
 
+		<!-- 数据库版本化迁移：V*.sql 随代码进 git，应用启动时自动对账执行（版本由 boot parent 管理） -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
