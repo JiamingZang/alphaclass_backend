@@ -20,12 +20,15 @@ else
   echo "${TAG_KEY}=${TAG}" >> "$ENV_FILE"
 fi
 
-# 2. 清理存量 tomcat9v2（无挂载的旧部署）避免容器名冲突，然后拉镜像重建容器
+# 2. 先拉镜像验证可用（拉失败则不动现有容器，线上服务不中断）
+docker pull "ghcr.io/jiamingzang/alphaclass-backend:$TAG"
+
+# 3. 清理存量 tomcat9v2（无挂载的旧部署）避免容器名冲突，然后重建容器
 cd "$BASE"
 docker rm -f tomcat9v2 2>/dev/null || true
 docker compose --env-file "$ENV_FILE" up -d --pull always backend-v2
 
-# 3. 健康检查：等待应用就绪（公开接口 /users 可达即视为启动成功；不用 /v3/api-docs，
+# 4. 健康检查：等待应用就绪（公开接口 /users 可达即视为启动成功；不用 /v3/api-docs，
 #    因为 SWAGGER_ENABLED=false 时该端点 404 会误判）
 PORT=$(grep "^SERVER_PORT=" "$ENV_FILE" | cut -d= -f2)
 for i in $(seq 1 30); do
