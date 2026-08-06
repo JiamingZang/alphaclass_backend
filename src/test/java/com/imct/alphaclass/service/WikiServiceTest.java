@@ -47,6 +47,14 @@ class WikiServiceTest {
     }
 
     @Test
+    void getDataFromUrl_nonStandardPort_returns400() {
+        ServiceException e = assertThrows(ServiceException.class,
+                () -> service.getDataFromUrl("http://example.com:8080/x"));
+        assertEquals("400", e.getCode());
+        assertEquals("仅支持 80/443 端口", e.getMessage());
+    }
+
+    @Test
     void getLongDescription_cloudMetadata_returns400() {
         ServiceException e = assertThrows(ServiceException.class,
                 () -> service.getLongDescription("http://169.254.169.254/latest/meta-data/"));

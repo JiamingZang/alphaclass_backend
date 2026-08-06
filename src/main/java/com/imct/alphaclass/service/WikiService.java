@@ -37,10 +37,10 @@ import okhttp3.Response;
 @Slf4j
 public class WikiService {
 
-    /** URL 代理抓取：清洗掉 script/link/style 后返回 HTML（供前端绕过跨域限制） */
+    /** URL 代理抓取：清洗掉 script/link/style 后返回 HTML（供前端绕过跨域限制）；走 SSRF 防御客户端 */
     public String getDataFromUrl(String urlParam) {
         validatePublicUrl(urlParam);
-        OkHttpClient client = HttpClients.defaultClient();
+        OkHttpClient client = HttpClients.publicClient();
         Request request = new Request.Builder()
             .url(urlParam)
             .method("GET", null)
@@ -61,7 +61,7 @@ public class WikiService {
 
     /** 按关键词搜索百科条目，返回条目候选列表（无结果时返回空列表） */
     public List<WikiResult> getWikiItems(String keyword) {
-        OkHttpClient client = HttpClients.defaultClient();
+        OkHttpClient client = HttpClients.publicClient();
 
         String uri = AiConstants.BAIKE_SEARCH_URL + "?word=" + MapUtils.urlEncode(keyword);
         Request request = new Request.Builder()
@@ -137,7 +137,7 @@ public class WikiService {
     /** 抓取百科条目详情页的标题与长描述 */
     public Map<String, Object> getLongDescription(String uri) {
         validatePublicUrl(uri);
-        OkHttpClient client = HttpClients.defaultClient();
+        OkHttpClient client = HttpClients.publicClient();
         String description = "";
         Request request = new Request.Builder()
             .url(uri)
@@ -168,14 +168,22 @@ public class WikiService {
         }
     }
 
-    /** SSRF 防御：仅允许公网 http/https 目标，拒绝内网/环回/元数据地址 */
+    /**
+     * SSRF 预检：仅允许公网 http/https 的 80/443 端口，拒绝内网/环回/元数据地址。
+     * 快速失败给出友好 400；真正的拦截兑底在 DNS 解析层（publicClient），
+     * 防止重定向与 DNS rebinding 绕过。
+     */
     private static void validatePublicUrl(String url) {
         HttpUrl parsed = HttpUrl.parse(url);
         if (parsed == null || !("http".equals(parsed.scheme()) || "https".equals(parsed.scheme()))) {
             throw new ServiceException(Constants.CODE_400, "仅支持 http/https 地址");
         }
+        int port = parsed.port();
         if (isInternalHost(parsed.host())) {
             throw new ServiceException(Constants.CODE_400, "不允许访问内网地址");
+        }
+        if (port != 80 && port != 443) {
+            throw new ServiceException(Constants.CODE_400, "仅支持 80/443 端口");
         }
     }
 

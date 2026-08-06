@@ -1,7 +1,11 @@
 package com.imct.alphaclass.utils;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Dns;
 import okhttp3.OkHttpClient;
 
 /**
@@ -25,6 +29,29 @@ public final class HttpClients {
         return new OkHttpClient().newBuilder()
                 .connectTimeout(connectSeconds, TimeUnit.SECONDS)
                 .readTimeout(readSeconds, TimeUnit.SECONDS)
+                .build();
+    }
+
+    /**
+     * 公网抓取客户端（SSRF 防御）：DNS 解析时拒绝内网/环回/链路本地/任意地址。
+     * 校验发生在请求实际使用的解析结果上，可同时覆盖 302 重定向与 DNS rebinding 绕过；
+     * 拦截时抛 UnknownHostException，由调用方按 IO 异常处理。其余配置同 defaultClient。
+     */
+    public static OkHttpClient publicClient() {
+        return defaultClient().newBuilder()
+                .dns(new Dns() {
+                    @Override
+                    public List<InetAddress> lookup(String hostname) throws UnknownHostException {
+                        List<InetAddress> addresses = Dns.SYSTEM.lookup(hostname);
+                        for (InetAddress addr : addresses) {
+                            if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
+                                    || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+                                throw new UnknownHostException("blocked internal address: " + hostname);
+                            }
+                        }
+                        return addresses;
+                    }
+                })
                 .build();
     }
 }

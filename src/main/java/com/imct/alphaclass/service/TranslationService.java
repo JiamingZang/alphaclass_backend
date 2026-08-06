@@ -115,7 +115,7 @@ public class TranslationService {
     public List<ExampleSentencesResult> getExampleSentences(String enq) {
         List<ExampleSentencesResult> res = new ArrayList<ExampleSentencesResult>();
         String wordURL = AiConstants.YOUDAO_WEB_RESULT_URL + "?word=" + MapUtils.urlEncode(enq) + "&lang=en";
-        OkHttpClient client = HttpClients.defaultClient();
+        OkHttpClient client = HttpClients.publicClient();
         Request request = new Request.Builder()
             .url(wordURL)
             .method("GET", null)
@@ -159,7 +159,7 @@ public class TranslationService {
             i++;
         }
 
-        OkHttpClient client = HttpClients.defaultClient();
+        OkHttpClient client = HttpClients.publicClient();
         Request request = new Request.Builder()
             .url(url + "?" + builder.toString())
             .method("GET", null)
