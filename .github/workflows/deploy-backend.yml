@@ -90,4 +90,6 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            bash /opt/alphaclass/scripts/deploy.sh ${{ needs.build.outputs.tag }}
+            # 先同步服务器代码（/opt/alphaclass 是 git 仓库，保证 deploy.sh/compose 与仓库一致），再部署
+            cd /opt/alphaclass && git pull --ff-only
+            bash scripts/deploy.sh ${{ needs.build.outputs.tag }}
