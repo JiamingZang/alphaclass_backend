@@ -5,7 +5,9 @@
 services:
   # 测试环境（staging）：8081，CI push 自动部署新版本
   backend-v2:
-    image: ghcr.io/jiamingzang/alphaclass-backend:${V2_TAG:?缺少 V2_TAG}
+    # 默认值 latest：仅当部署对应环境时该变量才由 deploy.sh 写入实际 tag，
+    # 用默认值避免另一环境的 env 文件缺失变量导致整个 compose 插值失败
+    image: ghcr.io/jiamingzang/alphaclass-backend:${V2_TAG:latest}
     # 沿用用户熟悉的存量容器名（旧 tomcat9v2 停掉后由它接替）
     container_name: tomcat9v2
     restart: unless-stopped
@@ -16,7 +18,7 @@ services:
 
   # 生产环境（production）：8082 先行并行验证，验证通过后切换为 8080 接替原版 tomcat9
   backend-prod:
-    image: ghcr.io/jiamingzang/alphaclass-backend:${PROD_TAG:?缺少 PROD_TAG}
+    image: ghcr.io/jiamingzang/alphaclass-backend:${PROD_TAG:latest}
     container_name: tomcat9prod
     restart: unless-stopped
     ports:
