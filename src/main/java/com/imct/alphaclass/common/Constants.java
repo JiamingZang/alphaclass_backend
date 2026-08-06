@@ -19,7 +19,7 @@ public interface Constants {
     String MSG_OWNER_ONLY_DELETE = "仅课程创建者可删除";
     String MSG_COURSE_NOT_FOUND = "课程不存在";
     String MSG_ANCHOR_NOT_FOUND = "锚点不存在";
-    String MSG_MEDIA_NOT_FOUND = "媒体不存在";
+    String MSG_MEDIA_NOT_FOUND = "看点不存在";
     String MSG_ASSET_NOT_FOUND = "资源不存在";
     String MSG_USERNAME_TAKEN = "用户名已被注册";
     String MSG_AUTH_FAILED = "认证失败";

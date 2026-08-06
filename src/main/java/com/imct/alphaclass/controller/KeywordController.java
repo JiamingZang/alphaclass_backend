@@ -18,7 +18,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@Tag(name = "关键词", description = "课程下关键词增删改查（嵌套媒体列表）；写操作需登录且仅课程创建者可操作")
+@Tag(name = "关键词", description = "课程下关键词增删改查（嵌套看点列表）；写操作需登录且仅课程创建者可操作")
 public class KeywordController {
     private final KeywordService service;
     private final TokenUtils tokenUtils;

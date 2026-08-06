@@ -94,7 +94,7 @@ class MediaControllerTest {
 
         mockMvc.perform(get("/courses/alice/math/k1/medias/999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("媒体不存在"));
+                .andExpect(jsonPath("$.message").value("看点不存在"));
     }
 
     @Test
@@ -139,7 +139,7 @@ class MediaControllerTest {
 
         mockMvc.perform(delete("/courses/alice/math/k1/medias/999").header("token", buildToken()))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("媒体不存在"));
+                .andExpect(jsonPath("$.message").value("看点不存在"));
     }
 
     @Test

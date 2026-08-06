@@ -97,7 +97,7 @@ class SmokeTest {
     }
 
     /**
-     * 关键词/媒体链路：沿第一个用户 → 第一个课程 → 第一个关键词，
+     * 关键词/看点链路：沿第一个用户 → 第一个课程 → 第一个关键词，
      * 验证 keyword 嵌套 medias、media 嵌套 color/anchor/asset 的结构契约。
      */
     @Test
@@ -112,13 +112,13 @@ class SmokeTest {
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
         JSONArray keywords = JSON.parseArray(resp.getBody());
-        assumeTrue(keywords != null && !keywords.isEmpty(), "该课程无关键词，跳过媒体结构验证");
+        assumeTrue(keywords != null && !keywords.isEmpty(), "该课程无关键词，跳过看点结构验证");
         JSONObject keyword = keywords.getJSONObject(0);
         assertEquals(String.class, keyword.get("id").getClass(), "keyword.id 应为字符串");
         assertNotNull(keyword.get("medias"), "keyword 应嵌套 medias");
 
         JSONArray medias = keyword.getJSONArray("medias");
-        assumeTrue(medias != null && !medias.isEmpty(), "该关键词无媒体，跳过媒体结构验证");
+        assumeTrue(medias != null && !medias.isEmpty(), "该关键词无看点，跳过看点结构验证");
         JSONObject media = medias.getJSONObject(0);
         assertEquals(String.class, media.get("id").getClass(), "media.id 应为字符串");
         assertNotNull(media.getJSONObject("color"), "media 应嵌套 color");

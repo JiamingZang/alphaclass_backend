@@ -34,7 +34,7 @@ import com.imct.alphaclass.utils.MapUtils;
 @Service
 @RequiredArgsConstructor
 public class MediaService {
-    /** 媒体类型常量（与数据库 type 字段取值一致） */
+    /** 看点类型常量（与数据库 type 字段取值一致） */
     private static final String TYPE_MODEL = "model";
     private static final String TYPE_TRANSLATION = "translation";
     private static final String TYPE_WIKI = "wiki";
@@ -51,7 +51,7 @@ public class MediaService {
     private final MediaWikiDAO mediawikidao;
 
     /**
-     * 按关键词新增媒体：先落 media 主记录，若带 media_model 则同步写
+     * 按关键词新增看点：先落 media 主记录，若带 media_model 则同步写
      * modelinfo/animation/part 扩展表；返回与查询接口一致的组装响应。
      */
     @Transactional
@@ -113,7 +113,7 @@ public class MediaService {
     }
 
     /**
-     * 按关键词新增 translation/wiki 类型媒体：先落 media 主记录，
+     * 按关键词新增 translation/wiki 类型看点：先落 media 主记录，
      * 再按 type 把专属信息写入 media_translation / media_wiki 扩展表。
      */
     @Transactional
@@ -132,7 +132,7 @@ public class MediaService {
         media.setKid(keyword.getId());
         dao.addMedia(media);
         media = dao.getMediaById(media.getId());
-        // 按媒体类型写入专属扩展表（translation/wiki 二选一）
+        // 按看点类型写入专属扩展表（translation/wiki 二选一）
         if (TYPE_TRANSLATION.equals(media.getType())) {
             Map<String, Object> media_translation = (Map<String, Object>) params.get("media_translation");
             MediaTranslation media_translation_obj = new MediaTranslation();
@@ -157,7 +157,7 @@ public class MediaService {
     }
 
     /**
-     * 删除媒体：仅当媒体属于该关键词时删除（归属校验，防止越权），返回是否删除成功。
+     * 删除看点：仅当看点属于该关键词时删除（归属校验，防止越权），返回是否删除成功。
      */
     public boolean deleteMediaById(String coursename, String ownername, String keywordname, int media_id) {
         Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
@@ -169,7 +169,7 @@ public class MediaService {
         return false;
     }
 
-    /** 查询关键词下全部媒体（内部按 kid 查询，复用 getMediasByKid 统一组装） */
+    /** 查询关键词下全部看点（内部按 kid 查询，复用 getMediasByKid 统一组装） */
     public List<Map<String, Object>> getAllMediasByKeyword(String ownername, String coursename, String keywordname) {
         Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         return getMediasByKid(keyword.getId());
@@ -187,7 +187,7 @@ public class MediaService {
                 .collect(Collectors.toList());
     }
 
-    /** 查询单个媒体：仅当媒体属于该关键词时返回组装响应 */
+    /** 查询单个看点：仅当看点属于该关键词时返回组装响应 */
     public Map<String, Object> getMediaById(String coursename, String ownername, String keywordname, int media_id) {
         Keyword keyword = access.requireKeyword(ownername, coursename, keywordname);
         Media media = dao.getMediaById(media_id);
@@ -198,7 +198,7 @@ public class MediaService {
     }
 
     /**
-     * 修改媒体：仅当媒体属于该关键词时生效（归属校验在更新前完成，防止越权改写）；
+     * 修改看点：仅当看点属于该关键词时生效（归属校验在更新前完成，防止越权改写）；
      * 主表字段未传时沿用旧值（部分更新语义）；
      * media_model/media_translation/media_wiki 扩展数据有则更新、无则新增，
      * 并在类型切换时清理不再适用的旧扩展数据。
@@ -380,8 +380,8 @@ public class MediaService {
     }
 
     /**
-     * 组装媒体响应：asset/anchor/color 嵌套 + type 专属信息（model/translation/wiki）。
-     * 所有媒体接口（增删改查）共用同一组装逻辑，保证响应结构一致。
+     * 组装看点响应：asset/anchor/color 嵌套 + type 专属信息（model/translation/wiki）。
+     * 所有看点接口（增删改查）共用同一组装逻辑，保证响应结构一致。
      */
     private Map<String, Object> buildMediaResponse(Media media) {
         Map<String, Object> ac = MapUtils.toMap(media);

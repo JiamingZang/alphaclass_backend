@@ -18,7 +18,7 @@ import com.imct.alphaclass.service.UserService;
 import com.imct.alphaclass.utils.TokenUtils;
 
 /**
- * 媒体接口契约快照：关键词媒体列表（200）/ 单媒体不存在（404）。
+ * 看点接口契约快照：关键词看点列表（200）/ 单看点不存在（404）。
  */
 @WebMvcTest(MediaController.class)
 class MediaControllerContractTest extends AbstractControllerContractTest {

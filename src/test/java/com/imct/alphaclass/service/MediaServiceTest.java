@@ -170,7 +170,7 @@ class MediaServiceTest {
         return parts;
     }
 
-    /** 组装 model 类型媒体的公共 DAO mock */
+    /** 组装 model 类型看点的公共 DAO mock */
     private void mockModelMediaAssemble(int mediaId) {
         when(anchordao.getAnchorById(400)).thenReturn(buildAnchor());
         when(assetdao.getAssetById(300)).thenReturn(buildAsset());
@@ -299,7 +299,7 @@ class MediaServiceTest {
         when(dao.getMediaById(200)).thenReturn(media);
 
         assertNull(service.getMediaById("math", "alice", "k1", 200));
-        // 不属于该 keyword 的媒体不可见
+        // 不属于该 keyword 的看点不可见
         verify(anchordao, never()).getAnchorById(anyInt());
     }
 
