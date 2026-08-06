@@ -46,7 +46,7 @@ public class UserController {
     public JSONResult register(@RequestBody User user){
         Map<String,Object> result = service.register(user);
         if (result==null) {
-            return JSONResult.failWithMsg(Constants.CODE_401,"用户名已被注册");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_USERNAME_TAKEN);
         }else{
             return JSONResult.successWithData(result);
         }
@@ -69,7 +69,7 @@ public class UserController {
             result.put("token", token);
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_401,"认证失败");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_AUTH_FAILED);
         }
     }
 
@@ -84,7 +84,7 @@ public class UserController {
                 return JSONResult.successWithData(result);
             }
         }
-        return JSONResult.failWithMsg(Constants.CODE_401, "验证失败");
+        return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_VERIFY_FAILED);
     }
 
     /** 修改昵称（需登录） */
@@ -98,7 +98,7 @@ public class UserController {
                 return JSONResult.successWithData(result);
             }
         }
-        return JSONResult.failWithMsg(Constants.CODE_401, "验证失败");
+        return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_VERIFY_FAILED);
     }
     
 }

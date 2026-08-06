@@ -39,7 +39,7 @@ public class KeywordController {
     @Operation(summary = "新增关键词", description = "需登录且仅创建者；body: {name}，返回新增关键词")
     public JSONResult addKeywordByCourse(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         Map<String, Object> result = service.addKeywordByCourse(owner, course, params);
         return JSONResult.successWithData(result);   
@@ -50,7 +50,7 @@ public class KeywordController {
     @Operation(summary = "删除关键词", description = "需登录且仅创建者；成功返回 204")
     public JSONResult deleteKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         service.deleteKeywordById(owner, course, keyword);
         return JSONResult.customWithStatus(Constants.CODE_204);
@@ -67,7 +67,7 @@ public class KeywordController {
     @Operation(summary = "修改关键词", description = "需登录且仅创建者；body: {name}，返回更新后的关键词")
     public JSONResult modifyKeywordByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         return JSONResult.successWithData(service.modifyKeywordByCourse(owner, course, keyword, params));
     }

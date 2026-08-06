@@ -39,7 +39,7 @@ public class TextToImageController {
         User user = tokenUtils.getCurrentUser();
         Object prompt = params.get("prompt");
         if (prompt == null) {
-            return JSONResult.failWithMsg(Constants.CODE_400, "缺少 prompt 参数");
+            return JSONResult.failWithMsg(Constants.CODE_400, Constants.MSG_PROMPT_REQUIRED);
         }
         return JSONResult.successWithData(service.generateImage(prompt.toString(), user.getId()));
     }
@@ -50,7 +50,7 @@ public class TextToImageController {
     public JSONResult getHistory() {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }

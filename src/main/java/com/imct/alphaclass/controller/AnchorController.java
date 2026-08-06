@@ -40,13 +40,13 @@ public class AnchorController {
     @Operation(summary = "新增锚点", description = "需登录且仅创建者；body: {name, pos{euler?}}，课程不存在返回 404")
     public JSONResult addAnchorByCourse(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         Map<String, Object> result = service.addAnchorByCourse(owner, course, params);
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_404, "课程不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_COURSE_NOT_FOUND);
         }
     }
 
@@ -55,13 +55,13 @@ public class AnchorController {
     @Operation(summary = "修改锚点", description = "需登录且仅创建者；body: {name, pos{euler?}}，锚点不存在返回 404")
     public JSONResult modifyAnchorByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable int anchor_id,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         Map<String, Object> result = service.modifyAnchorById(owner, course, anchor_id,params);
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_404, "锚点不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_ANCHOR_NOT_FOUND);
         }
     }
     
@@ -70,12 +70,12 @@ public class AnchorController {
     @Operation(summary = "删除锚点", description = "需登录且仅创建者；成功返回 204，锚点不存在返回 404")
     public JSONResult deleteAnchorByCourse(@PathVariable String owner, @PathVariable String course,@PathVariable int anchor_id) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可删除");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_DELETE);
         }
         if (service.deleteAnchorById(owner, course, anchor_id)) {
             return JSONResult.customWithStatus(Constants.CODE_204);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_404, "锚点不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_ANCHOR_NOT_FOUND);
         }
     }
 }

@@ -40,11 +40,11 @@ public class StudentCourseController {
     @Operation(summary = "批量添加学生", description = "需登录且仅创建者；body: {students: [用户名...]}，成功返回 204")
     public JSONResult addStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         List<String> students = studentList(params);
         if (students == null) {
-            return JSONResult.failWithMsg(Constants.CODE_400, "students 参数不合法");
+            return JSONResult.failWithMsg(Constants.CODE_400, Constants.MSG_STUDENTS_INVALID);
         }
         service.addStudentsByUsername(students, owner, course);
         return JSONResult.customWithStatus(Constants.CODE_204);
@@ -55,11 +55,11 @@ public class StudentCourseController {
     @Operation(summary = "批量移除学生", description = "需登录且仅创建者；body: {students: [用户名...]}，成功返回 204")
     public JSONResult deleteStudentsByUsername(@PathVariable String owner, @PathVariable String course,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         List<String> students = studentList(params);
         if (students == null) {
-            return JSONResult.failWithMsg(Constants.CODE_400, "students 参数不合法");
+            return JSONResult.failWithMsg(Constants.CODE_400, Constants.MSG_STUDENTS_INVALID);
         }
         service.deleteStudentsByUsername(students, owner, course);
         return JSONResult.customWithStatus(Constants.CODE_204);
@@ -80,7 +80,7 @@ public class StudentCourseController {
     public JSONResult getLoginUserCourses() {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         return JSONResult.successWithData(service.getLoginUserCourses(user.getId()));
     }

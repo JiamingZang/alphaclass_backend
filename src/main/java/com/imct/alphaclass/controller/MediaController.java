@@ -40,7 +40,7 @@ public class MediaController {
     @Operation(summary = "新增媒体", description = "需登录且仅创建者；body: {name, type, style, color{r,g,b}, asset_id?, anchor_id?, media_model?}，返回新增媒体")
     public JSONResult addMediaByKeyword(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         Map<String, Object> result = service.addMediaByKeyword(owner, course,keyword, params);
         return JSONResult.successWithData(result);   
@@ -51,7 +51,7 @@ public class MediaController {
     @Operation(summary = "新增翻译/百科媒体", description = "需登录且仅创建者；type=translation 时传 media_translation{word,translation_english,phonetic_UK,phonetic_US,sentence_CN,sentence_EN}，type=wiki 时传 media_wiki{word,title,description,url}")
     public JSONResult addTransOrWikiMediaByKeyword(@PathVariable String owner, @PathVariable String course,@PathVariable String keyword,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(owner) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         Map<String, Object> result = service.addMediaTranslationOrWikiByKeyword(owner, course,keyword, params);
         return JSONResult.successWithData(result);   
@@ -62,10 +62,10 @@ public class MediaController {
     @Operation(summary = "删除媒体", description = "需登录且仅创建者；成功返回 204，媒体不存在返回 404")
     public JSONResult deleteMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
         if (tokenUtils.requireOwner(user) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         if (!service.deleteMediaById(course, user, keyword, media_id)) {
-            return JSONResult.failWithMsg(Constants.CODE_404, "媒体不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_MEDIA_NOT_FOUND);
         }
         return JSONResult.customWithStatus(Constants.CODE_204);
     }
@@ -75,7 +75,7 @@ public class MediaController {
     public JSONResult getMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id) {
         Map<String, Object> result = service.getMediaById(course, user, keyword, media_id);
         if (result == null) {
-            return JSONResult.failWithMsg(Constants.CODE_404, "媒体不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_MEDIA_NOT_FOUND);
         }
         return JSONResult.successWithData(result);
     }
@@ -85,11 +85,11 @@ public class MediaController {
     @Operation(summary = "修改媒体", description = "需登录且仅创建者；部分更新语义（未传字段沿用旧值），media_model/media_translation/media_wiki 有则更新无则新增")
     public JSONResult modifyMediaById(@PathVariable String course, @PathVariable String user,@PathVariable String keyword,@PathVariable int media_id,@RequestBody Map<String, Object> params) {
         if (tokenUtils.requireOwner(user) == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
         }
         Map<String, Object> result = service.modifyMediaById(course, user, keyword, media_id, params);
         if (result == null) {
-            return JSONResult.failWithMsg(Constants.CODE_404, "媒体不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_MEDIA_NOT_FOUND);
         }
         return JSONResult.successWithData(result);
     }

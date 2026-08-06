@@ -12,4 +12,21 @@ public interface Constants {
     String CODE_500="500";
     String CODE_503="503";//服务不可用（第三方生成失败）
     String CODE_600="600";//业务异常
+
+    // 通用错误文案（Controller 共用，避免散落裸字符串；与契约快照/测试断言绑定，改动需同步更新）
+    String MSG_NO_TOKEN = "无token";
+    String MSG_OWNER_ONLY_MODIFY = "仅课程创建者可修改";
+    String MSG_OWNER_ONLY_DELETE = "仅课程创建者可删除";
+    String MSG_COURSE_NOT_FOUND = "课程不存在";
+    String MSG_ANCHOR_NOT_FOUND = "锚点不存在";
+    String MSG_MEDIA_NOT_FOUND = "媒体不存在";
+    String MSG_ASSET_NOT_FOUND = "资源不存在";
+    String MSG_USERNAME_TAKEN = "用户名已被注册";
+    String MSG_AUTH_FAILED = "认证失败";
+    String MSG_VERIFY_FAILED = "验证失败";
+    String MSG_PAGE_INVALID = "分页参数不合法";
+    String MSG_PROMPT_REQUIRED = "缺少 prompt 参数";
+    String MSG_PROMPT_SIZE_REQUIRED = "缺少 prompt/size 参数";
+    String MSG_PROMPT_SIZE_IMAGE_REQUIRED = "缺少 prompt/size/image_url 参数";
+    String MSG_STUDENTS_INVALID = "students 参数不合法";
 }

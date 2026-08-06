@@ -45,7 +45,7 @@ public class CourseController {
     public JSONResult addCourse(@RequestBody Course course){
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         return JSONResult.successWithData(service.addCourse(user.getUsername(), course));
     }
@@ -58,7 +58,7 @@ public class CourseController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_404, "课程不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_COURSE_NOT_FOUND);
         }
     }
 
@@ -70,7 +70,7 @@ public class CourseController {
         if (result!=null) {
             return JSONResult.successWithData(result);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_404, "课程不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_COURSE_NOT_FOUND);
         }
     }
 
@@ -85,7 +85,7 @@ public class CourseController {
                 return JSONResult.successWithData(result);
             }
         }
-        return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可修改");
+        return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_MODIFY);
     }
 
     /** 删除课程（需登录，仅课程创建者可删除） */
@@ -97,7 +97,7 @@ public class CourseController {
             service.deleteByUserAndName(owner, course);
             return JSONResult.customWithStatus(Constants.CODE_204);
         }else{
-            return JSONResult.failWithMsg(Constants.CODE_401, "仅课程创建者可删除");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_OWNER_ONLY_DELETE);
         }
     }
 }

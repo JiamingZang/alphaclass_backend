@@ -39,7 +39,7 @@ public class VideoGenerationController {
     public JSONResult textToVideo(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         if (params.get("prompt") == null || params.get("size") == null) {
-            return JSONResult.failWithMsg(Constants.CODE_400, "缺少 prompt/size 参数");
+            return JSONResult.failWithMsg(Constants.CODE_400, Constants.MSG_PROMPT_SIZE_REQUIRED);
         }
         return JSONResult.successWithData(service.textToVideo(params, user.getId()));
     }
@@ -50,7 +50,7 @@ public class VideoGenerationController {
     public JSONResult imageToVideo(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         if (params.get("prompt") == null || params.get("size") == null || params.get("image_url") == null) {
-            return JSONResult.failWithMsg(Constants.CODE_400, "缺少 prompt/size/image_url 参数");
+            return JSONResult.failWithMsg(Constants.CODE_400, Constants.MSG_PROMPT_SIZE_IMAGE_REQUIRED);
         }
         return JSONResult.successWithData(service.imageToVideo(params, user.getId()));
     }
@@ -61,7 +61,7 @@ public class VideoGenerationController {
     public JSONResult getHistory() {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }

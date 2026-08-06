@@ -55,7 +55,7 @@ public class ModelGenerationController {
     public JSONResult updateModelResult(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         service.updateModelResult(params, user.getId());
         return JSONResult.successWithData("");
@@ -67,7 +67,7 @@ public class ModelGenerationController {
     public JSONResult getHistory() {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         return JSONResult.successWithData(service.getHistory(user.getId()));
     }

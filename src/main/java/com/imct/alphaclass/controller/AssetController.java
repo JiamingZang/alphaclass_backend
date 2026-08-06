@@ -38,10 +38,10 @@ public class AssetController {
         @RequestParam(name = "type", required = false) String type) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         if (page < 1 || perpage < 1) {
-            return JSONResult.failWithMsg(Constants.CODE_400, "分页参数不合法");
+            return JSONResult.failWithMsg(Constants.CODE_400, Constants.MSG_PAGE_INVALID);
         }
         return JSONResult.successWithData(service.getAllByUser(user.getUsername(), page, perpage, type));
     }
@@ -52,7 +52,7 @@ public class AssetController {
     public JSONResult addAsset(@RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         return JSONResult.successWithData(service.addAsset(user.getUsername(), params));
     }
@@ -63,10 +63,10 @@ public class AssetController {
     public JSONResult deleteById(@PathVariable int id) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         if (!service.deleteById(user.getId(), id)) {
-            return JSONResult.failWithMsg(Constants.CODE_404, "资源不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_ASSET_NOT_FOUND);
         }
         return JSONResult.customWithStatus(Constants.CODE_204);
     }
@@ -77,13 +77,13 @@ public class AssetController {
     public JSONResult modifyById(@PathVariable int id, @RequestBody Map<String, Object> params) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         Map<String, Object> result = service.modifyById(user.getId(), id, params);
         if (result != null) {
             return JSONResult.successWithData(result);
         } else {
-            return JSONResult.failWithMsg(Constants.CODE_404, "资源不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_ASSET_NOT_FOUND);
         }
     }
 
@@ -93,13 +93,13 @@ public class AssetController {
     public JSONResult getById(@PathVariable int id) {
         User user = tokenUtils.getCurrentUser();
         if (user == null) {
-            return JSONResult.failWithMsg(Constants.CODE_401, "无token");
+            return JSONResult.failWithMsg(Constants.CODE_401, Constants.MSG_NO_TOKEN);
         }
         Map<String, Object> result = service.getAssetById(user.getId(), id);
         if (result != null) {
             return JSONResult.successWithData(result);
         } else {
-            return JSONResult.failWithMsg(Constants.CODE_404, "资源不存在");
+            return JSONResult.failWithMsg(Constants.CODE_404, Constants.MSG_ASSET_NOT_FOUND);
         }
     }
 }
