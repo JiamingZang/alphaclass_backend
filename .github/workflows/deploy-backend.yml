@@ -63,7 +63,10 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/jiamingzang/alphaclass-backend:sha-${{ github.sha }}
+          # sha tag 用于精确部署/回滚；latest 用于服务器手动 docker compose up 拉取
+          tags: |
+            ghcr.io/jiamingzang/alphaclass-backend:sha-${{ github.sha }}
+            ghcr.io/jiamingzang/alphaclass-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: 输出短 tag
