@@ -25,10 +25,11 @@ fi
 cd "$BASE"
 docker compose --env-file "$ENV_FILE" up -d --pull always "backend-$ENV"
 
-# 3. 健康检查：等待应用就绪（swagger api-docs 可达即视为启动成功）
+# 3. 健康检查：等待应用就绪（公开接口 /users 可达即视为启动成功；不用 /v3/api-docs，
+#    因为 SWAGGER_ENABLED=false 时该端点 404 会误判）
 PORT=$(grep "^SERVER_PORT=" "$ENV_FILE" | cut -d= -f2)
 for i in $(seq 1 30); do
-  if curl -sf "http://127.0.0.1:${PORT}/v3/api-docs" >/dev/null 2>&1; then
+  if curl -sf "http://127.0.0.1:${PORT}/users" >/dev/null 2>&1; then
     echo "部署成功: $ENV @ $TAG（端口 $PORT）"
     exit 0
   fi
