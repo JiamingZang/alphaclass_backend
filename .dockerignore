@@ -5,4 +5,6 @@ target/
 *.log
 .env
 .env.*
+# 本地真实密钥文件不进构建上下文（Dockerfile 内会用 example 模板覆盖，双保险）
+src/main/resources/application.yml
 !src/main/resources/application.example.yml
