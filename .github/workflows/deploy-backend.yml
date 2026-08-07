@@ -1,12 +1,12 @@
-# 后端 CI/CD：PR 测试 → push 构建镜像推 GHCR → 部署 v2 测试环境
-# 环境形态：v2 = 测试环境（8081，CI 自动部署新版本）；原版（8080 tomcat9）保持不动 = 生产
+# 后端 CI/CD：PR 测试 → push 测试+构建镜像推 GHCR（自动部署已暂停，手动触发才部署 v2）
+# 环境形态：v2 = 测试环境（8081）；原版（8080 tomcat9）保持不动 = 生产
 # 触发范围按路径过滤：只改前端/文档不触发后端流水线
 name: Deploy Backend
 
 on:
   push:
     branches: [master]
-    # 只忽略文档类改动；代码/配置/脚本任何变化都触发
+    # 只忽略文档类改动；代码/配置/脚本任何变化都触发（自动部署暂停期间仅跑测试+构建）
     paths-ignore:
       - '*.md'
       - '*.txt'
@@ -41,10 +41,10 @@ jobs:
         # 用 bash 执行（不依赖 mvnw 可执行位，Windows 提交的文件权限位可能丢失）
         run: bash ./mvnw -B test
 
-  # 阶段 2：构建镜像并推送 GHCR（仅 push；tag = commit SHA 前 8 位）
+  # 阶段 2：构建镜像并推送 GHCR（push 与手动触发都构建；tag = commit SHA 前 8 位）
   build:
     needs: test
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -77,10 +77,10 @@ jobs:
         id: tag
         run: echo "tag=sha-${{ env.SHORT_SHA }}" >> "$GITHUB_OUTPUT"
 
-  # 阶段 3：部署 v2 测试环境（自动部署，无审批；原版生产不受影响）
+  # 阶段 3：部署 v2 测试环境（已暂停自动部署：仅手动触发时执行，生产不受影响）
   deploy-v2:
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: 部署 v2
